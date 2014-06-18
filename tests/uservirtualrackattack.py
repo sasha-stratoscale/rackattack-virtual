@@ -17,7 +17,8 @@ class UserVirtualRackAttack:
         imageDir = os.path.join(os.getcwd(), "images.fortests")
         shutil.rmtree(imageDir, ignore_errors=True)
         self._popen = subprocess.Popen(
-            ["sudo", "PYTHONPATH=.", "python", "rackattack/virtual/main.py",
+            ["sudo", "PYTHONPATH=.", "UPSETO_JOIN_PYTHON_NAMESPACES=Yes",
+                "python", "rackattack/virtual/main.py",
                 "--requestPort=%d" % self._requestPort,
                 "--subscribePort=%d" % self._subscribePort,
                 "--diskImagesDirectory=" + imageDir,

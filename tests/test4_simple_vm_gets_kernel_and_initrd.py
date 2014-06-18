@@ -32,10 +32,6 @@ class Test(unittest.TestCase):
         ssh.connect()
         result = ssh.run.script("echo hello")
         self.assertEquals(result.strip(), "hello")
-### DIRTY BREAKPOINT
-        import time
-        time.sleep( 10000000 )
-### DIRTY BREAKPOINT END
         allocation.free()
 
 

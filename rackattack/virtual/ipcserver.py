@@ -4,6 +4,7 @@ import logging
 import simplejson
 from rackattack.tcp import heartbeat
 from rackattack.tcp import suicide
+from rackattack import api
 from rackattack.common import globallock
 
 
@@ -16,6 +17,12 @@ class IPCServer(threading.Thread):
         threading.Thread.__init__(self)
         self.daemon = True
         threading.Thread.start(self)
+
+    def _cmd_handshake(self, version):
+        if version != api.VERSION:
+            raise Exception(
+                "Rackattack API version on the client side is '%s', and '%s' on the provider" % (
+                    version, api.VERSION))
 
     def _cmd_allocate(self, requirements, allocationInfo):
         allocation = self._allocations.create(requirements)

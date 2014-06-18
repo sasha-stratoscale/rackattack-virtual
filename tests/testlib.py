@@ -1,13 +1,15 @@
-import os
 from rackattack import api
 import socket
 import time
+import subprocess
 
 
-def defaultRequirement(imageHint="hint"):
-    if 'RACKATTACK_IMAGELABEL' not in os.environ:
-        raise Exception("Test requires RACKATTACK_IMAGELABEL to be defined for testing")
-    imageLabel = os.environ['RACKATTACK_IMAGELABEL']
+def defaultRequirement(imageHint="vanilla"):
+    labelRegex = "solvent__rootfs-vanilla__rootfs__.*official"
+    lines = subprocess.check_output(["osmosis", "listlabels", labelRegex]).strip()
+    if len(lines) == 0:
+        raise Exception("Local osmosis object store does not contain a label matchin '%s'" % labelRegex)
+    imageLabel = lines.split("\n")[0]
     return api.Requirement(imageLabel=imageLabel, imageHint=imageHint)
 
 
