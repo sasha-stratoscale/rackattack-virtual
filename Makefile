@@ -1,7 +1,7 @@
 all: test build check_convention
 
 clean:
-	rm -fr build images.fortests
+	sudo rm -fr build images.fortests
 
 test: unittest whiteboxtest
 UNITTESTS=$(shell find rackattack -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)

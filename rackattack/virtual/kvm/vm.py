@@ -57,6 +57,8 @@ class VM:
         image1 = os.path.join(config.DISK_IMAGES_DIRECTORY, name + "_disk1.qcow2")
         image2 = os.path.join(config.DISK_IMAGES_DIRECTORY, name + "_disk2.qcow2")
         serialLog = os.path.join(config.SERIAL_LOGS_DIRECTORY, name + ".serial.txt")
+        if not os.path.isdir(os.path.dirname(serialLog)):
+            os.makedirs(os.path.dirname(serialLog))
         hardwareConstraints = requirement['hardwareConstraints']
         imagecommands.create(
             image=image1, sizeGB=hardwareConstraints['minimumDisk1SizeGB'])
