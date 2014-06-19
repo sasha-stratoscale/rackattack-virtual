@@ -1,0 +1,11 @@
+[Unit]
+Description=Rackattack VM Hosts Provider
+After=network.target
+
+[Service]
+Type=simple
+Environment='PYTHONPATH=/usr/share/rackattack.virtual/rackattack.virtual.egg'
+ExecStart=/usr/bin/python -m rackattack.virtual.main
+
+[Install]
+WantedBy=multi-user.target

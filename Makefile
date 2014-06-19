@@ -1,7 +1,7 @@
-all: test check_convention
+all: test build check_convention
 
 clean:
-	rm -fr build dist rackattack.egg-info images.fortests
+	rm -fr build images.fortests
 
 test: unittest whiteboxtest
 UNITTESTS=$(shell find rackattack -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
@@ -20,14 +20,24 @@ testone:
 check_convention:
 	pep8 rackattack --max-line-length=109
 
-uninstall:
-	sudo pip uninstall rackattack
-	sudo rm /usr/bin/rackattack
+.PHONY: build
+build: build/rackattack.virtual.egg
 
-install:
-	-sudo pip uninstall rackattack
-	python setup.py build
-	python setup.py bdist
-	sudo python setup.py install
-	sudo cp rackattack.sh /usr/bin/rackattack
-	sudo chmod 755 /usr/bin/rackattack
+-include build/rackattack.virtual.egg.dep
+build/rackattack.virtual.egg:
+	-mkdir $(@D)
+	python -m upseto.packegg --entryPoint rackattack/virtual/main.py --output=$@ --createDeps=$@.dep --compile_pyc --joinPythonNamespaces
+
+install: build/rackattack.virtual.egg
+	-sudo systemctl stop rackattack-virtual
+	-sudo mkdir /usr/share/rackattack.virtual
+	sudo cp build/rackattack.virtual.egg /usr/share/rackattack.virtual
+	sudo cp rackattack-virtual.service /usr/lib/systemd/system/rackattack-virtual.service
+	sudo systemctl enable rackattack-virtual
+	sudo systemctl start rackattack-virtual
+
+uninstall:
+	-sudo systemctl stop rackattack-virtual
+	-sudo systemctl disable rackattack-virtual
+	-sudo rm -fr /usr/lib/systemd/system/rackattack-virtual.service
+	sudo rm -fr /usr/share/rackattack.virtual
