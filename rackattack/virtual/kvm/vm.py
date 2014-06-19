@@ -1,14 +1,18 @@
 from rackattack.virtual.kvm import manifest
 from rackattack.virtual.kvm import libvirtsingleton
 from rackattack.virtual.kvm import config
-from rackattack.virtual.kvm import imagecommands
 from rackattack.virtual.kvm import network
+from rackattack.virtual.kvm import imagecommands
 import os
 
 
 class VM:
-    def __init__(self, index, domain, manifest, disk1SizeGB, disk2SizeGB):
+    def __init__(
+            self, index, requirement, freeImagesPool, domain,
+            manifest, disk1SizeGB, disk2SizeGB):
         self._index = index
+        self._requirement = requirement
+        self._freeImagesPool = freeImagesPool
         self._domain = domain
         self._manifest = manifest
         self._disk1SizeGB = disk1SizeGB
@@ -41,7 +45,9 @@ class VM:
         with libvirtsingleton.it().lock():
             self._domain.destroy()
             self._domain.undefine()
-        os.unlink(self._manifest.disk1Image())
+        self._freeImagesPool.put(
+            filename=self._manifest.disk1Image(), sizeGB=self._manifest.disk1SizeGB(),
+            imageHint=self._requirement['imageHint'])
         os.unlink(self._manifest.disk2Image())
 
     def fulfillsRequirement(self, requirement):
@@ -52,7 +58,7 @@ class VM:
             self._disk2SizeGB >= hardwareConstraints['minimumDisk2SizeGB']
 
     @classmethod
-    def create(cls, index, requirement):
+    def create(cls, index, requirement, freeImagesPool):
         name = cls._nameFromIndex(index)
         image1 = os.path.join(config.DISK_IMAGES_DIRECTORY, name + "_disk1.qcow2")
         image2 = os.path.join(config.DISK_IMAGES_DIRECTORY, name + "_disk2.qcow2")
@@ -60,8 +66,9 @@ class VM:
         if not os.path.isdir(os.path.dirname(serialLog)):
             os.makedirs(os.path.dirname(serialLog))
         hardwareConstraints = requirement['hardwareConstraints']
-        imagecommands.create(
-            image=image1, sizeGB=hardwareConstraints['minimumDisk1SizeGB'])
+        previousFilename = freeImagesPool.get(
+            sizeGB=hardwareConstraints['minimumDisk1SizeGB'], imageHint=requirement['imageHint'])
+        os.rename(previousFilename, image1)
         imagecommands.create(
             image=image2, sizeGB=hardwareConstraints['minimumDisk2SizeGB'])
         mani = manifest.Manifest.create(
@@ -78,7 +85,9 @@ class VM:
             domain = libvirtsingleton.it().libvirt().defineXML(mani.xml())
             domain.create()
         return cls(
-            index=index, domain=domain, manifest=mani,
+            index=index, domain=domain,
+            requirement=requirement, freeImagesPool=freeImagesPool,
+            manifest=mani,
             disk1SizeGB=hardwareConstraints['minimumDisk1SizeGB'],
             disk2SizeGB=hardwareConstraints['minimumDisk2SizeGB'])
 

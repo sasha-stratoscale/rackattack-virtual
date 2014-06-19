@@ -61,6 +61,7 @@ class FreePool:
             logging.info("VM %(index)d unused for a while, destroying", dict(
                 index=host.stateMachine.hostImplementation().index()))
             self._hosts.destroy(host.stateMachine)
+        self._rescheduleTimer()
 
     def _hostSelfDestructed(self, hostStateMachine):
         assert globallock.assertLocked()

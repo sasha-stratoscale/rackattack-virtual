@@ -5,11 +5,12 @@ import logging
 
 
 class Acumulate:
-    def __init__(self, tftpboot, inaugurate, hosts, freePool):
+    def __init__(self, tftpboot, inaugurate, hosts, freePool, freeImagesPool):
         self._tftpboot = tftpboot
         self._inaugurate = inaugurate
         self._hosts = hosts
         self._freePool = freePool
+        self._freeImagesPool = freeImagesPool
         self._acumulated = dict()
 
     def acumulated(self):
@@ -42,7 +43,8 @@ class Acumulate:
             return None
         try:
             assert name not in self._acumulated
-            vmInstance = vm.VM.create(self._hosts.availableIndex(), requirement)
+            vmInstance = vm.VM.create(
+                self._hosts.availableIndex(), requirement, freeImagesPool=self._freeImagesPool)
             try:
                 stateMachine = hoststatemachine.HostStateMachine(
                     hostImplementation=vmInstance, inaugurate=self._inaugurate, tftpboot=self._tftpboot)

@@ -102,7 +102,7 @@ class Test(unittest.TestCase):
         self.currentTimer = None
         self.currentTimerTag = None
 
-    def createVM(self, index, requirement):
+    def createVM(self, index, requirement, freeImagesPool):
         self.assertEquals(index, self.expectedVMCreateIndex)
         self.expectedVMCreateIndex = None
         self.assertEquals(requirement, self.expectedVMCreateRequirement)

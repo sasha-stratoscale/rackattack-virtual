@@ -11,16 +11,20 @@ class Allocation:
     _LIMBO_AFTER_DEATH_DURATION = 60
     _HEARTBEAT_TIMEOUT = 15
 
-    def __init__(self, index, tftpboot, inaugurate, hosts, freePool, stateChangeCallback, requirements):
+    def __init__(
+            self, index, tftpboot, inaugurate, hosts, freePool,
+            stateChangeCallback, requirements, freeImagesPool):
         self._index = index
         self._tftpboot = tftpboot
         self._inaugurate = inaugurate
         self._hosts = hosts
         self._freePool = freePool
         self._requirements = requirements
+        self._freeImagesPool = freeImagesPool
         self._stateChangeCallback = stateChangeCallback
         self._acumulate = acumulate.Acumulate(
-            tftpboot=tftpboot, inaugurate=inaugurate, hosts=hosts, freePool=freePool)
+            tftpboot=tftpboot, inaugurate=inaugurate, hosts=hosts, freePool=freePool,
+            freeImagesPool=freeImagesPool)
         self._waiting = dict()
         self._allocated = dict()
         self._death = None
