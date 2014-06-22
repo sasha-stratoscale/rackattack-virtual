@@ -8,7 +8,7 @@ UNITTESTS=$(shell find rackattack -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.
 COVERED_FILES=rackattack/common/hoststatemachine.py,rackattack/common/hosts.py,rackattack/virtual/alloc/allocations.py,rackattack/virtual/alloc/allocation.py,rackattack/virtual/alloc/freepool.py
 unittest:
 	UPSETO_JOIN_PYTHON_NAMESPACES=Yes PYTHONPATH=. coverage run -m unittest $(UNITTESTS)
-	coverage report --show-missing --rcfile=coverage.config --fail-under=100 --include=$(COVERED_FILES)
+	coverage report --show-missing --rcfile=coverage.config --fail-under=91 --include=$(COVERED_FILES)
 
 WHITEBOXTESTS=$(shell find tests -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
 whiteboxtest:
