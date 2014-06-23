@@ -28,8 +28,6 @@ def _cleanupDiskImages():
     logging.info("Cleaning up previous disk images")
     for filename in glob.glob(config.DISK_IMAGES_DIRECTORY + "/*.qcow2"):
         os.unlink(filename)
-    for filename in glob.glob(config.FREE_DISK_IMAGES_DIRECTORY + "/*.qcow2"):
-        os.unlink(filename)
 
 
 def cleanup():

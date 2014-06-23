@@ -28,6 +28,9 @@ class TimersThread(threading.Thread):
         self._timers = []
         self._event = threading.Event()
         TimersThread.it = self
+        threading.Thread.__init__(self)
+        self.daemon = True
+        threading.Thread.start(self)
 
     def scheduleIn(self, timeout, callback, tag):
         self.scheduleAt(when=time.time() + timeout, callback=callback, tag=tag)
@@ -40,7 +43,7 @@ class TimersThread(threading.Thread):
 
     def cancelAllByTag(self, tag):
         assert globallock.assertLocked()
-        self._timers = [t for t in self._timers if t.tag is tag]
+        self._timers = [t for t in self._timers if t.tag is not tag]
         self._event.set()
 
     def run(self):
@@ -49,7 +52,7 @@ class TimersThread(threading.Thread):
             while True:
                 self._event.wait(timeout=timeout)
                 self._event.clear()
-                with globallock.lock():
+                with globallock.lock:
                     self._runOne()
                     timeout = self._nextTimeout()
         except:
@@ -70,7 +73,7 @@ class TimersThread(threading.Thread):
         assert globallock.assertLocked()
         if len(self._timers) == 0:
             return
-        if self._timers[0].when < time.time():
+        if self._timers[0].when > time.time():
             return
         timer = self._timers.pop(0)
         try:

@@ -1,12 +1,11 @@
-from rackattack.virtual.kvm import vm
 from rackattack.virtual.kvm import config
 from rackattack.common import hoststatemachine
 from rackattack.common import globallock
 from rackattack.common import timer
 from rackattack.virtual.alloc import acumulate
-from rackattack.virtual import sh
 from rackattack.virtual import localizelabelsthread
 import time
+import logging
 
 
 class Allocation:
@@ -39,6 +38,7 @@ class Allocation:
             labels=set([r['imageLabel'] for r in requirements.values()]),
             labelsLocalizedCallback=self._labelsLocalized,
             labelsLocalizationFailedCallback=self._labelsLocalizationFailed)
+        logging.info("allocation created. requirements:\n%(requirements)s", dict(requirements=requirements))
 
     def _labelsLocalized(self):
         assert globallock.assertLocked()
@@ -88,6 +88,7 @@ class Allocation:
 
     def _die(self, reason):
         assert not self.dead()
+        logging.info("Allocation dies of '%(reason)s'", dict(reason=reason))
         self._acumulate.free()
         self._allocated = None
         self._waiting = None

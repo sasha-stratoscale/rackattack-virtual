@@ -13,7 +13,7 @@ STATE_DESTROYED = 6
 
 class HostStateMachine:
     _TIMEOUT = {
-        STATE_QUICK_RECLAIMATION_IN_PROGRESS: 30,
+        STATE_QUICK_RECLAIMATION_IN_PROGRESS: 60,
         STATE_SLOW_RECLAIMATION_IN_PROGRESS: 7 * 60,
         STATE_INAUGURATION_LABEL_PROVIDED: 4 * 60}
     _COLD_RECLAIMS_RETRIES = 5
@@ -77,6 +77,7 @@ class HostStateMachine:
         self._changeState(STATE_DESTROYED)
         assert self._destroyCallback is not None
         self._destroyCallback = None
+        self._hostImplementation.destroy()
 
     def _inauguratorCheckedIn(self):
         assert globallock.assertLocked()

@@ -46,7 +46,7 @@ class VM:
             self._domain.destroy()
             self._domain.undefine()
         self._freeImagesPool.put(
-            filename=self._manifest.disk1Image(), sizeGB=self._manifest.disk1SizeGB(),
+            filename=self._manifest.disk1Image(), sizeGB=self._disk1SizeGB,
             imageHint=self._requirement['imageHint'])
         os.unlink(self._manifest.disk2Image())
 
@@ -68,6 +68,8 @@ class VM:
         hardwareConstraints = requirement['hardwareConstraints']
         previousFilename = freeImagesPool.get(
             sizeGB=hardwareConstraints['minimumDisk1SizeGB'], imageHint=requirement['imageHint'])
+        if not os.path.isdir(os.path.dirname(image1)):
+            os.makedirs(os.path.dirname(image1))
         os.rename(previousFilename, image1)
         imagecommands.create(
             image=image2, sizeGB=hardwareConstraints['minimumDisk2SizeGB'])
