@@ -5,7 +5,7 @@ import subprocess
 
 
 def defaultRequirement(imageHint="vanilla"):
-    labelRegex = "solvent__rootfs-vanilla__rootfs__.*official"
+    labelRegex = "solvent__rootfs-vanilla__rootfs__.*"
     lines = subprocess.check_output(["osmosis", "listlabels", labelRegex]).strip()
     if len(lines) == 0:
         raise Exception("Local osmosis object store does not contain a label matchin '%s'" % labelRegex)

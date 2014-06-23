@@ -4,6 +4,8 @@ from rackattack.common import hoststatemachine
 from rackattack.common import globallock
 from rackattack.common import timer
 from rackattack.virtual.alloc import acumulate
+from rackattack.virtual import sh
+from rackattack.virtual import localizelabelsthread
 import time
 
 
@@ -33,8 +35,21 @@ class Allocation:
                 "Configured to disallow such a large allocation. Maximum is %d" % config.MAXIMUM_VMS)
             return
         self.heartbeat()
+        localizelabelsthread.LocalizeLabelsThread(
+            labels=set([r['imageLabel'] for r in requirements.values()]),
+            labelsLocalizedCallback=self._labelsLocalized,
+            labelsLocalizationFailedCallback=self._labelsLocalizationFailed)
+
+    def _labelsLocalized(self):
+        assert globallock.assertLocked()
         self._freePool.registerPutListener(self._attemptToAllocate)
         self._attemptToAllocate()
+
+    def _labelsLocalizationFailed(self, reason):
+        assert globallock.assertLocked()
+        if self.dead():
+            return
+        self._die("unable to localize labels: %s" % reason)
 
     def index(self):
         return self._index

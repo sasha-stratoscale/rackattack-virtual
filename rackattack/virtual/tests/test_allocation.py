@@ -7,6 +7,7 @@ from rackattack.virtual.kvm import vm
 from rackattack.virtual.kvm import config
 from rackattack.virtual.alloc import allocations
 from rackattack.virtual.alloc import freepool
+from rackattack.virtual import localizelabelsthread
 
 
 class Empty:
@@ -61,6 +62,8 @@ class Test(unittest.TestCase):
         self.fakeBroadcaster = Empty()
         self.fakeBroadcaster.allocationChangedState = self.broadcastAllocationChangedState
         self.stateMachines = []
+        localizelabelsthread.LocalizeLabelsThread = self.createLocalizeLabelsThread
+        self.expectedLocalizeLabels = None
 
         self.expectedVMCreateIndex = None
         self.expectedVMCreateRequirement = None
@@ -115,6 +118,11 @@ class Test(unittest.TestCase):
         self.expectedHostImplementationInStateMachineConstruction = result
         return result
 
+    def createLocalizeLabelsThread(self, labels, labelsLocalizedCallback, labelsLocalizationFailedCallback):
+        self.assertEquals(labels, self.expectedLocalizeLabels)
+        self.labelsLocalizedCallback = labelsLocalizedCallback
+        self.labelsLocalizationFailedCallback = labelsLocalizationFailedCallback
+
     def constructStateMachine(self, hostImplementation, inaugurate, tftpboot):
         self.assertIs(hostImplementation, self.expectedHostImplementationInStateMachineConstruction)
         self.expectedHostImplementationInStateMachineConstruction = None
@@ -136,11 +144,16 @@ class Test(unittest.TestCase):
     def test_AllocateOne(self):
         self.expectedVMCreateIndex = 1
         self.expectedVMCreateRequirement = self.singleRequirement()['name']
+        self.expectedLocalizeLabels = set(["image label"])
         allocation = self.testedAllocations.create(self.singleRequirement())
         self.assertFalse(allocation.done())
         self.assertFalse(allocation.dead())
         self.assertFalse(allocation.deadForAWhile())
         self.assertIs(self.testedAllocations.byIndex(allocation.index()), allocation)
+        self.assertEquals(len(self.stateMachines), 0)
+
+        self.labelsLocalizedCallback()
+        self.labelsLocalizedCallback = None
         self.assertEquals(len(self.stateMachines), 1)
         self.assertEquals(self.stateMachines[0]._imageLabel, "image label")
         self.assertEquals(self.stateMachines[0]._imageHint, "image hint")
@@ -175,7 +188,10 @@ class Test(unittest.TestCase):
     def allocateOneAndFree(self):
         self.expectedVMCreateIndex = 1
         self.expectedVMCreateRequirement = self.singleRequirement()['name']
+        self.expectedLocalizeLabels = set(["image label"])
         allocation = self.testedAllocations.create(self.singleRequirement())
+        self.labelsLocalizedCallback()
+        self.labelsLocalizedCallback = None
         self.assertFalse(allocation.done())
         self.expectedAllocationChangedStateBroadcast = 1
         self.stateMachines[0]._state = hoststatemachine.STATE_INAUGURATION_DONE
@@ -203,6 +219,8 @@ class Test(unittest.TestCase):
         self.expectedVMCreateIndex = 2
         self.expectedVMCreateRequirement = self.singleRequirement()['name']
         allocation = self.testedAllocations.create(self.singleRequirement())
+        self.labelsLocalizedCallback()
+        self.labelsLocalizedCallback = None
         self.assertFalse(allocation.done())
         self.expectedAllocationChangedStateBroadcast = 2
         self.assertEquals(len(self.stateMachines), 1)
