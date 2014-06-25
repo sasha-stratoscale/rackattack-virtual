@@ -1,9 +1,8 @@
-all: test build check_convention
+all: unittest build check_convention
 
 clean:
 	sudo rm -fr build images.fortests
 
-test: unittest whiteboxtest
 UNITTESTS=$(shell find rackattack -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
 COVERED_FILES=rackattack/common/hoststatemachine.py,rackattack/common/hosts.py,rackattack/virtual/alloc/allocations.py,rackattack/virtual/alloc/allocation.py,rackattack/virtual/alloc/freepool.py
 unittest:
@@ -11,7 +10,7 @@ unittest:
 	coverage report --show-missing --rcfile=coverage.config --fail-under=91 --include=$(COVERED_FILES)
 
 WHITEBOXTESTS=$(shell find tests -name 'test?_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
-whiteboxtest:
+whiteboxtest_nonstandard:
 	UPSETO_JOIN_PYTHON_NAMESPACES=Yes PYTHONPATH=. python -m unittest $(WHITEBOXTESTS)
 
 testone:

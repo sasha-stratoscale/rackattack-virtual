@@ -22,6 +22,10 @@ class FakeHost:
     def sshCredentials(self):
         return dict(fakeSSHCredentials=True)
 
+    def destroy(self):
+        assert self.expectedDestroy
+        self.expectedDestroy = False
+
 
 class Test(unittest.TestCase):
     def setUp(self):
@@ -301,8 +305,10 @@ class Test(unittest.TestCase):
     def timerCausesSelfDestruct(self):
         self.assertFalse(self.expectedSelfDestruct)
         self.expectedSelfDestruct = True
+        self.hostImplementation.expectedDestroy = True
         self.currentTimer()
         self.assertFalse(self.expectedSelfDestruct)
+        self.assertFalse(self.hostImplementation.expectedDestroy)
 
     def timerCausesSelfDestructAndStateChange(self):
         self.assertIs(self.expectedReportedState, None)
