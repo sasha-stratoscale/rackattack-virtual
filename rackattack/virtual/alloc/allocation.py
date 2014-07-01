@@ -105,9 +105,11 @@ class Allocation:
             instance = vm.VM.createFromImageStore(
                 index=self._availableIndex(), requirement=requirement, imageStore=self._imageStore)
             self._vms[name] = instance
+            self._allVMs[instance.index()] = instance
 
     def _availableIndex(self):
         indices = set(xrange(1, len(self._allVMs) + 2))
-        for vmInstance in self._allVMs:
+        for index, vmInstance in self._allVMs.iteritems():
+            assert vmInstance.index() == index
             indices.discard(vmInstance.index())
         return min(indices)
