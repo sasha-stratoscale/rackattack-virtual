@@ -1,9 +1,7 @@
 from rackattack.virtual.kvm import config
-from rackattack.common import hoststatemachine
-from rackattack.common import globallock
 from rackattack.common import timer
-from rackattack.virtual.alloc import acumulate
-from rackattack.virtual import localizelabelsthread
+from rackattack.virtual.kvm import vm
+from rackattack.common import globallock
 import time
 import logging
 
@@ -12,56 +10,35 @@ class Allocation:
     _LIMBO_AFTER_DEATH_DURATION = 60
     _HEARTBEAT_TIMEOUT = 15
 
-    def __init__(
-            self, index, tftpboot, inaugurate, hosts, freePool,
-            stateChangeCallback, requirements, freeImagesPool):
+    def __init__(self, index, requirements, broadcaster, buildImageThread, imageStore, allVMs):
         self._index = index
-        self._tftpboot = tftpboot
-        self._inaugurate = inaugurate
-        self._hosts = hosts
-        self._freePool = freePool
         self._requirements = requirements
-        self._freeImagesPool = freeImagesPool
-        self._stateChangeCallback = stateChangeCallback
-        self._acumulate = acumulate.Acumulate(
-            tftpboot=tftpboot, inaugurate=inaugurate, hosts=hosts, freePool=freePool,
-            freeImagesPool=freeImagesPool)
-        self._waiting = dict()
-        self._allocated = dict()
+        self._broadcaster = broadcaster
+        self._buildImageThread = buildImageThread
+        self._imageStore = imageStore
+        self._allVMs = allVMs
+        self._vms = None
         self._death = None
         if len(self._requirements) > config.MAXIMUM_VMS:
             self._die(
                 "Configured to disallow such a large allocation. Maximum is %d" % config.MAXIMUM_VMS)
             return
         self.heartbeat()
-        localizelabelsthread.LocalizeLabelsThread(
-            labels=set([r['imageLabel'] for r in requirements.values()]),
-            labelsLocalizedCallback=self._labelsLocalized,
-            labelsLocalizationFailedCallback=self._labelsLocalizationFailed)
         logging.info("allocation created. requirements:\n%(requirements)s", dict(requirements=requirements))
-
-    def _labelsLocalized(self):
-        assert globallock.assertLocked()
-        self._freePool.registerPutListener(self._attemptToAllocate)
-        self._attemptToAllocate()
-
-    def _labelsLocalizationFailed(self, reason):
-        assert globallock.assertLocked()
-        if self.dead():
-            return
-        self._die("unable to localize labels: %s" % reason)
+        self._waitingForImages = 0
+        self._enqueueBuildImages()
+        if self._waitingForImages == 0:
+            self._createVMs()
 
     def index(self):
         return self._index
 
-    def allocated(self):
+    def vms(self):
         assert self.done()
-        return self._allocated
+        return self._vms
 
     def done(self):
-        done = len(self._allocated) == len(self._requirements)
-        assert not done or len(self._waiting) == 0
-        return done
+        return self._vms is not None and len(self._vms) == len(self._requirements)
 
     def free(self):
         self._die("freed")
@@ -73,7 +50,7 @@ class Allocation:
         timer.scheduleIn(timeout=self._HEARTBEAT_TIMEOUT, callback=self._heartbeatTimeout, tag=self)
 
     def dead(self):
-        assert self._death is None or self._allocated is None
+        assert self._death is None or self._vms is None
         if self._death is None:
             return None
         return self._death['reason']
@@ -89,50 +66,48 @@ class Allocation:
     def _die(self, reason):
         assert not self.dead()
         logging.info("Allocation dies of '%(reason)s'", dict(reason=reason))
-        self._acumulate.free()
-        self._allocated = None
-        self._waiting = None
+        if self._vms is not None:
+            for name, vmInstance in self._vms.iteritems():
+                if vmInstance.index() in self._allVMs:
+                    del self._allVMs[vmInstance.index()]
+                vmInstance.destroy()
+            self._vms = None
         self._death = dict(when=time.time(), reason=reason)
         timer.cancelAllByTag(tag=self)
-        self._stateChangeCallback(self)
+        self._broadcaster.allocationChangedState(self._index)
 
-    def _attemptToAllocate(self):
-        for name in self._notAllocated():
-            self._attemptAllocationMethod(name, self._acumulate.tryAllocateFromFreePoolWithHint)
-        for name in self._notAllocated():
-            self._attemptAllocationMethod(name, self._acumulate.tryAllocateFromFreePool)
-        for name in self._notAllocated():
-            self._attemptAllocationMethod(name, self._acumulate.tryCreate)
-        for name in self._notAllocated():
-            self._attemptAllocationMethod(name, self._acumulate.tryDestroyFromFreePoolAndCreate)
-        if len(self._notAllocated()) == 0:
-            self._freePool.unregisterPutListener(self._attemptToAllocate)
+    def _enqueueBuildImages(self):
+        for requirement in self._requirements.values():
+            imageLabel = requirement['imageLabel']
+            sizeGB = requirement['hardwareConstraints']['minimumDisk1SizeGB']
+            try:
+                self._imageStore.get(imageLabel, sizeGB)
+            except:
+                self._buildImageThread.enqueue(
+                    label=imageLabel, sizeGB=sizeGB, callback=self._buildImageThreadCallback)
+                self._waitingForImages += 1
 
-    def _notAllocated(self):
-        return set(self._requirements.keys()) - set(self._allocated.keys()) - set(self._waiting.keys())
-
-    def _attemptAllocationMethod(self, name, method):
-        assert name not in self._waiting
-        assert name not in self._allocated
-        requirement = self._requirements[name]
-        stateMachine = method(name, requirement)
-        if stateMachine is None:
+    def _buildImageThreadCallback(self, complete, message):
+        assert globallock.assertLocked()
+        if complete is None:
+            self._broadcaster.allocationProviderMessage(self._index, message)
             return
-        self._waiting[name] = stateMachine
-        stateMachine.setDestroyCallback(self._stateMachineSelfDestructed)
-        stateMachine.assign(
-            stateChangeCallback=lambda x: self._stateMachineChangedState(name, stateMachine),
-            imageLabel=requirement['imageLabel'],
-            imageHint=requirement['imageHint'])
+        if complete:
+            self._waitingForImages -= 1
+            if self._waitingForImages == 0:
+                self._createVMs()
+        else:
+            self._die("unable to build image")
 
-    def _stateMachineChangedState(self, name, stateMachine):
-        if stateMachine.state() == hoststatemachine.STATE_INAUGURATION_DONE:
-            assert name in self._waiting
-            del self._waiting[name]
-            self._allocated[name] = stateMachine
-            if self.done():
-                self._stateChangeCallback(self)
+    def _createVMs(self):
+        self._vms = dict()
+        for name, requirement in self._requirements.iteritems():
+            instance = vm.VM.createFromImageStore(
+                index=self._availableIndex(), requirement=requirement, imageStore=self._imageStore)
+            self._vms[name] = instance
 
-    def _stateMachineSelfDestructed(self, stateMachine):
-        raise NotImplementedError("not implemented")
-        self._hosts.destroy(stateMachine)
+    def _availableIndex(self):
+        indices = set(xrange(1, len(self._allVMs) + 2))
+        for vmInstance in self._allVMs:
+            indices.discard(vmInstance.index())
+        return min(indices)

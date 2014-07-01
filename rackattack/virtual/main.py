@@ -6,13 +6,14 @@ connection.discardSSHDebugMessages()
 import time
 import argparse
 from rackattack.virtual import ipcserver
+from rackattack.virtual import buildimagethread
 from rackattack.virtual.kvm import cleanup
 import rackattack.virtual.handlekill
 from rackattack.virtual.kvm import config
 from rackattack.virtual.kvm import network
+from rackattack.virtual.kvm import imagestore
 from rackattack.common import dnsmasq
 from rackattack.common import tftpboot
-from rackattack.common import hosts
 from rackattack.common import inaugurate
 from rackattack.common import timer
 from rackattack.virtual.alloc import allocations
@@ -52,12 +53,15 @@ dnsmasqInstance = dnsmasq.DNSMasq(
     nameserver=network.GATEWAY_IP_ADDRESS)
 for mac, ip in network.allNodesMACIPPairs():
     dnsmasqInstance.add(mac, ip)
-hostsInstance = hosts.Hosts()
 inaugurateInstance = inaugurate.Inaugurate(bindHostname=network.GATEWAY_IP_ADDRESS)
+imageStore = imagestore.ImageStore()
+buildImageThread = buildimagethread.BuildImageThread(
+    inaugurate=inaugurateInstance, tftpboot=tftpbootInstance, imageStore=imageStore)
 publishInstance = publish.Publish(tcpPort=args.subscribePort)
+allVMs = dict()
 allocationsInstance = allocations.Allocations(
-    tftpboot=tftpbootInstance, inaugurate=inaugurateInstance,
-    hosts=hostsInstance, broadcaster=publishInstance)
+    broadcaster=publishInstance, buildImageThread=buildImageThread,
+    imageStore=imageStore, allVMs=allVMs)
 server = ipcserver.IPCServer(tcpPort=args.requestPort, allocations=allocationsInstance)
 logging.info("Virtual RackAttack up and running")
 while True:

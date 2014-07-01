@@ -26,7 +26,9 @@ def _cleanupDomains():
 
 def _cleanupDiskImages():
     logging.info("Cleaning up previous disk images")
-    for filename in glob.glob(config.DISK_IMAGES_DIRECTORY + "/*.qcow2"):
+    for filename in glob.glob(config.DISK_IMAGES_DIRECTORY + "/*"):
+        os.unlink(filename)
+    for filename in glob.glob(config.SERIAL_LOGS_DIRECTORY + "/*"):
         os.unlink(filename)
 
 

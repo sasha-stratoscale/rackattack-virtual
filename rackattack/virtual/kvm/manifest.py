@@ -41,7 +41,8 @@ class Manifest:
                primaryMACAddress,
                secondaryMACAddress,
                networkName,
-               serialOutputFilename):
+               serialOutputFilename,
+               bootFromNetwork):
         assert name.startswith(config.DOMAIN_PREFIX)
         assert memoryMB > 0
         assert vcpus >= 1
@@ -54,7 +55,8 @@ class Manifest:
             primaryMACAddress=primaryMACAddress,
             secondaryMACAddress=secondaryMACAddress,
             networkName=config.NETWORK_NAME,
-            serialOutputFilename=serialOutputFilename))
+            serialOutputFilename=serialOutputFilename,
+            bootDevice='network' if bootFromNetwork else 'hd'))
 
 _TEMPLATE = """
 <domain type='kvm'>
@@ -64,7 +66,7 @@ _TEMPLATE = """
   <vcpu placement='static'>%(vcpus)d</vcpu>
   <os>
     <type arch='x86_64' machine='pc-i440fx-1.4'>hvm</type>
-    <boot dev='network'/>
+    <boot dev='%(bootDevice)s'/>
   </os>
   <features>
     <acpi/>

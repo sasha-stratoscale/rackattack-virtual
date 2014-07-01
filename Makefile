@@ -4,7 +4,7 @@ clean:
 	sudo rm -fr build images.fortests
 
 UNITTESTS=$(shell find rackattack -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
-COVERED_FILES=rackattack/common/hoststatemachine.py,rackattack/common/hosts.py,rackattack/virtual/alloc/allocations.py,rackattack/virtual/alloc/allocation.py,rackattack/virtual/alloc/freepool.py
+COVERED_FILES=rackattack/common/hoststatemachine.py,rackattack/common/hosts.py
 unittest:
 	UPSETO_JOIN_PYTHON_NAMESPACES=Yes PYTHONPATH=. coverage run -m unittest $(UNITTESTS)
 	coverage report --show-missing --rcfile=coverage.config --fail-under=91 --include=$(COVERED_FILES)

@@ -35,8 +35,7 @@ class IPCServer(threading.Thread):
         if not allocation.done():
             raise Exception("Must not fetch nodes from a not done allocation")
         result = {}
-        for name, stateMachine in allocation.allocated().iteritems():
-            vm = stateMachine.hostImplementation()
+        for name, vm in allocation.vms().iteritems():
             result[name] = dict(
                 id=vm.id(), primaryMACAddress=vm.primaryMACAddress(),
                 secondaryMACAddress=vm.secondaryMACAddress(), ipAddress=vm.ipAddress())
@@ -62,9 +61,9 @@ class IPCServer(threading.Thread):
 
     def _cmd_node__rootSSHCredentials(self, allocationID, nodeID):
         allocation = self._allocations.byIndex(allocationID)
-        for stateMachine in allocation.allocated().values():
-            if stateMachine.hostImplementation().id() == nodeID:
-                return stateMachine.hostImplementation().rootSSHCredentials()
+        for vm in allocation.vms().values():
+            if vm.id() == nodeID:
+                return vm.rootSSHCredentials()
         raise Exception("Node with id '%s' was not found in this allocation" % nodeID)
 
     def run(self):

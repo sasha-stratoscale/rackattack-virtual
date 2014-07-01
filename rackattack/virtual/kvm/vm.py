@@ -8,11 +8,10 @@ import os
 
 class VM:
     def __init__(
-            self, index, requirement, freeImagesPool, domain,
+            self, index, requirement, domain,
             manifest, disk1SizeGB, disk2SizeGB):
         self._index = index
         self._requirement = requirement
-        self._freeImagesPool = freeImagesPool
         self._domain = domain
         self._manifest = manifest
         self._disk1SizeGB = disk1SizeGB
@@ -45,32 +44,43 @@ class VM:
         with libvirtsingleton.it().lock():
             self._domain.destroy()
             self._domain.undefine()
-        self._freeImagesPool.put(
-            filename=self._manifest.disk1Image(), sizeGB=self._disk1SizeGB,
-            imageHint=self._requirement['imageHint'])
+        if os.path.exists(self._manifest.disk1Image()):
+            os.unlink(self._manifest.disk1Image())
         os.unlink(self._manifest.disk2Image())
 
-    def fulfillsRequirement(self, requirement):
-        hardwareConstraints = requirement['hardwareConstraints']
-        return self._manifest.vcpus() >= hardwareConstraints['minimumCPUs'] and \
-            self._manifest.memoryMB() >= hardwareConstraints['minimumRAMGB'] * 1024 and \
-            self._disk1SizeGB >= hardwareConstraints['minimumDisk1SizeGB'] and \
-            self._disk2SizeGB >= hardwareConstraints['minimumDisk2SizeGB']
+    def disk1Image(self):
+        return self._manifest.disk1Image()
 
     @classmethod
-    def create(cls, index, requirement, freeImagesPool):
+    def createFromImageStore(cls, index, requirement, imageStore):
         name = cls._nameFromIndex(index)
         image1 = os.path.join(config.DISK_IMAGES_DIRECTORY, name + "_disk1.qcow2")
+        frozenImage = imageStore.get(
+            sizeGB=requirement['hardwareConstraints']['minimumDisk1SizeGB'],
+            imageLabel=requirement['imageLabel'])
+        if not os.path.isdir(os.path.dirname(image1)):
+            os.makedirs(os.path.dirname(image1))
+        imagecommands.deriveCopyOnWrite(original=frozenImage, newImage=image1)
+        return cls._createFromGivenImage(index, requirement, image1, False)
+
+    @classmethod
+    def createFromNewImage(cls, index, requirement):
+        name = cls._nameFromIndex(index)
+        image1 = os.path.join(config.DISK_IMAGES_DIRECTORY, name + "_disk1.qcow2")
+        if not os.path.isdir(os.path.dirname(image1)):
+            os.makedirs(os.path.dirname(image1))
+        imagecommands.create(
+            image=image1, sizeGB=requirement['hardwareConstraints']['minimumDisk1SizeGB'])
+        return cls._createFromGivenImage(index, requirement, image1, True)
+
+    @classmethod
+    def _createFromGivenImage(cls, index, requirement, image1, bootFromNetwork):
+        name = cls._nameFromIndex(index)
         image2 = os.path.join(config.DISK_IMAGES_DIRECTORY, name + "_disk2.qcow2")
         serialLog = os.path.join(config.SERIAL_LOGS_DIRECTORY, name + ".serial.txt")
         if not os.path.isdir(os.path.dirname(serialLog)):
             os.makedirs(os.path.dirname(serialLog))
         hardwareConstraints = requirement['hardwareConstraints']
-        previousFilename = freeImagesPool.get(
-            sizeGB=hardwareConstraints['minimumDisk1SizeGB'], imageHint=requirement['imageHint'])
-        if not os.path.isdir(os.path.dirname(image1)):
-            os.makedirs(os.path.dirname(image1))
-        os.rename(previousFilename, image1)
         imagecommands.create(
             image=image2, sizeGB=hardwareConstraints['minimumDisk2SizeGB'])
         mani = manifest.Manifest.create(
@@ -82,14 +92,13 @@ class VM:
             primaryMACAddress=network.primaryMACAddressFromVMIndex(index),
             secondaryMACAddress=network.secondMACAddressFromVMIndex(index),
             networkName=network.NAME,
-            serialOutputFilename=serialLog)
+            serialOutputFilename=serialLog,
+            bootFromNetwork=bootFromNetwork)
         with libvirtsingleton.it().lock():
             domain = libvirtsingleton.it().libvirt().defineXML(mani.xml())
             domain.create()
         return cls(
-            index=index, domain=domain,
-            requirement=requirement, freeImagesPool=freeImagesPool,
-            manifest=mani,
+            index=index, domain=domain, requirement=requirement, manifest=mani,
             disk1SizeGB=hardwareConstraints['minimumDisk1SizeGB'],
             disk2SizeGB=hardwareConstraints['minimumDisk2SizeGB'])
 
