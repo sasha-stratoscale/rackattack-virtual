@@ -9,9 +9,10 @@ INAUGURATOR_INITRD = "/usr/share/inaugurator/inaugurator.initrd.img"
 
 
 class TFTPBoot:
-    def __init__(self, netmask, serverIP, rootPassword):
+    def __init__(self, netmask, inauguratorServerIP, osmosisServerIP, rootPassword):
         self._netmask = netmask
-        self._serverIP = serverIP
+        self._inauguratorServerIP = inauguratorServerIP
+        self._osmosisServerIP = osmosisServerIP
         self._root = tempfile.mkdtemp(suffix=".tftpboot")
         self._rootPassword = rootPassword
         atexit.register(self._cleanup)
@@ -52,7 +53,7 @@ class TFTPBoot:
     def inauguratorCommandLine(self, mac, ip):
         return _INAUGURATOR_COMMAND_LINE % dict(
             macAddress=mac, ipAddress=ip, netmask=self._netmask,
-            osmosisServerIP=self._serverIP, inauguratorServerIP=self._serverIP,
+            osmosisServerIP=self._osmosisServerIP, inauguratorServerIP=self._inauguratorServerIP,
             rootPassword=self._rootPassword)
 
 

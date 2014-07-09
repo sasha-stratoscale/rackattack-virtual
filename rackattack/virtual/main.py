@@ -41,7 +41,8 @@ timer.TimersThread()
 network.setUp()
 tftpbootInstance = tftpboot.TFTPBoot(
     netmask=network.NETMASK,
-    serverIP=network.GATEWAY_IP_ADDRESS,
+    inauguratorServerIP=network.GATEWAY_IP_ADDRESS,
+    osmosisServerIP=network.GATEWAY_IP_ADDRESS,
     rootPassword=config.ROOT_PASSWORD)
 dnsmasqInstance = dnsmasq.DNSMasq(
     tftpboot=tftpbootInstance,
