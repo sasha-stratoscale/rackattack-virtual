@@ -58,7 +58,7 @@ inaugurateInstance = inaugurate.Inaugurate(bindHostname=network.GATEWAY_IP_ADDRE
 imageStore = imagestore.ImageStore()
 buildImageThread = buildimagethread.BuildImageThread(
     inaugurate=inaugurateInstance, tftpboot=tftpbootInstance, imageStore=imageStore)
-publishInstance = publish.Publish(tcpPort=args.subscribePort)
+publishInstance = publish.Publish(tcpPort=args.subscribePort, localhostOnly=True)
 allVMs = dict()
 allocationsInstance = allocations.Allocations(
     broadcaster=publishInstance, buildImageThread=buildImageThread,

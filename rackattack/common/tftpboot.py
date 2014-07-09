@@ -94,7 +94,9 @@ label BootFromLocalDisk
 """
 
 _INAUGURATOR_COMMAND_LINE = \
+    "console=ttyS0,115200n8 " \
     "--inauguratorSource=network " \
     "--inauguratorUseNICWithMAC=%(macAddress)s --inauguratorOsmosisObjectStores=%(osmosisServerIP)s:1010 " \
     "--inauguratorServerHostname=%(inauguratorServerIP)s --inauguratorIPAddress=%(ipAddress)s " \
-    "--inauguratorNetmask=%(netmask)s --inauguratorChangeRootPassword=%(rootPassword)s"
+    "--inauguratorNetmask=%(netmask)s --inauguratorGateway=%(inauguratorServerIP)s " \
+    "--inauguratorChangeRootPassword=%(rootPassword)s"
