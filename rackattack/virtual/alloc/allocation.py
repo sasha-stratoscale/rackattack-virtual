@@ -77,15 +77,21 @@ class Allocation:
         self._broadcaster.allocationChangedState(self._index)
 
     def _enqueueBuildImages(self):
+        toEnqeue = set()
         for requirement in self._requirements.values():
             imageLabel = requirement['imageLabel']
             sizeGB = requirement['hardwareConstraints']['minimumDisk1SizeGB']
             try:
                 self._imageStore.get(imageLabel, sizeGB)
             except:
-                self._buildImageThread.enqueue(
-                    label=imageLabel, sizeGB=sizeGB, callback=self._buildImageThreadCallback)
-                self._waitingForImages += 1
+                toEnqeue.add((imageLabel, sizeGB))
+        for imageLabel, sizeGB in toEnqeue:
+            self._broadcaster.allocationProviderMessage(
+                self._index, "Label '%s' requires a qcow2 build. This takes several "
+                "minutes per label and is requires once for each new label" % imageLabel)
+            self._buildImageThread.enqueue(
+                label=imageLabel, sizeGB=sizeGB, callback=self._buildImageThreadCallback)
+            self._waitingForImages += 1
 
     def _buildImageThreadCallback(self, complete, message):
         assert globallock.assertLocked()
@@ -94,6 +100,9 @@ class Allocation:
             return
         if complete:
             self._waitingForImages -= 1
+            self._broadcaster.allocationProviderMessage(
+                self._index, "QCOW2 built successfully. Waiting for %d more "
+                "qcows to be built" % self._waitingForImages)
             if self._waitingForImages == 0:
                 self._createVMs()
         else:
@@ -106,6 +115,7 @@ class Allocation:
                 index=self._availableIndex(), requirement=requirement, imageStore=self._imageStore)
             self._vms[name] = instance
             self._allVMs[instance.index()] = instance
+        self._broadcaster.allocationChangedState(self._index)
 
     def _availableIndex(self):
         indices = set(xrange(1, len(self._allVMs) + 2))

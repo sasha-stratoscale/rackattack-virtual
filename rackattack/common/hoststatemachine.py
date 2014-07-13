@@ -104,7 +104,10 @@ class HostStateMachine:
 
     def _softReclaimFailed(self):
         assert globallock.assertLocked()
-        assert self._state == STATE_QUICK_RECLAIMATION_IN_PROGRESS
+        assert self._state in [STATE_QUICK_RECLAIMATION_IN_PROGRESS, STATE_DESTROYED]
+        if self._state != STATE_QUICK_RECLAIMATION_IN_PROGRESS:
+            logging.warning("Ignoring soft reclamation failure, node already destroyed")
+            return
         logging.warning(
             "Soft reclaimation for host %(ipAddress)s failed, reverting to cold reclaimation",
             dict(ipAddress=self._hostImplementation.ipAddress(), state=self._state))
