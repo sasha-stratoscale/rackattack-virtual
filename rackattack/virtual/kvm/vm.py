@@ -33,7 +33,7 @@ class VM:
         return network.ipAddressFromVMIndex(self._index)
 
     def rootSSHCredentials(self):
-        return dict(hostname=self.ipAddress(), username="root", password=config.ROOT_PASSWORD)
+        return dict(hostname=self.ipAddress(), username="root", password=config.ROOT_PASSWORD, port=22)
 
     def coldRestart(self):
         with libvirtsingleton.it().lock():
