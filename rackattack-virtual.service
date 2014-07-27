@@ -1,6 +1,6 @@
 [Unit]
 Description=Rackattack VM Hosts Provider
-After=network.target
+After=network.target libvirtd.service
 
 [Service]
 Type=simple

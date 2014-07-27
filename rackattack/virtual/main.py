@@ -45,6 +45,7 @@ tftpbootInstance = tftpboot.TFTPBoot(
     osmosisServerIP=network.GATEWAY_IP_ADDRESS,
     rootPassword=config.ROOT_PASSWORD,
     withLocalObjectStore=False)
+dnsmasq.DNSMasq.killSpecificPrevious(serverIP=network.GATEWAY_IP_ADDRESS)
 dnsmasqInstance = dnsmasq.DNSMasq(
     tftpboot=tftpbootInstance,
     serverIP=network.GATEWAY_IP_ADDRESS,
@@ -52,7 +53,8 @@ dnsmasqInstance = dnsmasq.DNSMasq(
     firstIP=network.FIRST_IP,
     lastIP=network.LAST_IP,
     gateway=network.GATEWAY_IP_ADDRESS,
-    nameserver=network.GATEWAY_IP_ADDRESS)
+    nameserver=network.GATEWAY_IP_ADDRESS,
+    interface="rackattacknetbr")
 for mac, ip in network.allNodesMACIPPairs():
     dnsmasqInstance.add(mac, ip)
 inaugurateInstance = inaugurate.Inaugurate(bindHostname=network.GATEWAY_IP_ADDRESS)
