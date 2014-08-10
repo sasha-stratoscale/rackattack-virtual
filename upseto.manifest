@@ -1,3 +1,5 @@
 requirements:
 - hash: 85dfae3152d5ca2bf492b25312b59bf04207ddf2
   originURL: https://github.com/Stratoscale/rackattack-api.git
+- hash: 4c810a9064017687654b0f8128f466f3a955fa24
+  originURL: https://github.com/Stratoscale/upseto.git

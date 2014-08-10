@@ -40,3 +40,6 @@ uninstall:
 	-sudo systemctl disable rackattack-virtual.service
 	-sudo rm -fr /usr/lib/systemd/system/rackattack-virtual.service
 	sudo rm -fr /usr/share/rackattack.virtual
+
+prepareForCleanBuild:
+	cd ../upseto ; make install
