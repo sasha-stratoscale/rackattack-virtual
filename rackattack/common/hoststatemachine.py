@@ -18,11 +18,12 @@ class HostStateMachine:
         STATE_INAUGURATION_LABEL_PROVIDED: 4 * 60}
     _COLD_RECLAIMS_RETRIES = 5
 
-    def __init__(self, hostImplementation, inaugurate, tftpboot):
+    def __init__(self, hostImplementation, inaugurate, tftpboot, freshVMJustStarted=True):
         self._hostImplementation = hostImplementation
         self._destroyCallback = None
         self._inaugurate = inaugurate
         self._tftpboot = tftpboot
+        self._clearDisk = not freshVMJustStarted
         self._slowReclaimCounter = 0
         self._stop = False
         self._stateChangeCallback = None
@@ -34,7 +35,10 @@ class HostStateMachine:
             doneCallback=self._inauguratorDone)
         self._tftpboot.configureForInaugurator(
             self._hostImplementation.primaryMACAddress(), self._hostImplementation.ipAddress())
-        self._changeState(STATE_QUICK_RECLAIMATION_IN_PROGRESS)
+        if freshVMJustStarted:
+            self._changeState(STATE_QUICK_RECLAIMATION_IN_PROGRESS)
+        else:
+            self._coldReclaim()
 
     def setDestroyCallback(self, callback):
         self._destroyCallback = callback
@@ -120,7 +124,7 @@ class HostStateMachine:
         self._inaugurate.provideLabel(ipAddress=self._hostImplementation.ipAddress(), label=self._imageLabel)
 
     def _coldReclaim(self):
-        assert self._destroyCallback is not None
+        assert self._destroyCallback is not None or self._slowReclaimCounter == 0
         self._slowReclaimCounter += 1
         if self._slowReclaimCounter > self._COLD_RECLAIMS_RETRIES:
             logging.error("Cold reclaims retries exceeded, destroying host %(ipAddress)s", dict(
@@ -132,7 +136,9 @@ class HostStateMachine:
         logging.info("Node is being cold reclaimed %(ipAddress)s", dict(
             ipAddress=self._hostImplementation.ipAddress()))
         self._tftpboot.configureForInaugurator(
-            self._hostImplementation.primaryMACAddress(), self._hostImplementation.ipAddress())
+            self._hostImplementation.primaryMACAddress(), self._hostImplementation.ipAddress(),
+            clearDisk=self._clearDisk)
+        self._clearDisk = False
         self._changeState(STATE_SLOW_RECLAIMATION_IN_PROGRESS)
         reclaimhost.ReclaimHost.cold(self._hostImplementation, self._tftpboot)
 

@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 import atexit
+import logging
 
 
 INAUGURATOR_KERNEL = "/usr/share/inaugurator/inaugurator.vmlinuz"
@@ -33,8 +34,10 @@ class TFTPBoot:
         shutil.copy(INAUGURATOR_INITRD, self._root)
         os.mkdir(self._pxelinuxConfigDir)
 
-    def configureForInaugurator(self, mac, ip):
-        self._writeConfiguration(mac, self._configurationForInaugurator(mac, ip))
+    def configureForInaugurator(self, mac, ip, clearDisk=False):
+        if clearDisk:
+            logging.info("Configuring host %(ipAddress)s inaugurator to clearDisk", dict(ipAddress=ip))
+        self._writeConfiguration(mac, self._configurationForInaugurator(mac, ip, clearDisk=clearDisk))
 
     def configureForLocalBoot(self, mac):
         self._writeConfiguration(mac, _CONFIGURATION_FOR_LOCAL_BOOT)
@@ -45,19 +48,21 @@ class TFTPBoot:
         with open(path, "w") as f:
             f.write(contents)
 
-    def _configurationForInaugurator(self, mac, ip):
+    def _configurationForInaugurator(self, mac, ip, clearDisk):
         return _INAUGURATOR_TEMPLATE % dict(
-            inauguratorCommandLine=self.inauguratorCommandLine(mac, ip),
+            inauguratorCommandLine=self.inauguratorCommandLine(mac, ip, clearDisk),
             inauguratorKernel=os.path.basename(INAUGURATOR_KERNEL),
             inauguratorInitrd=os.path.basename(INAUGURATOR_INITRD))
 
-    def inauguratorCommandLine(self, mac, ip):
+    def inauguratorCommandLine(self, mac, ip, clearDisk):
         result = _INAUGURATOR_COMMAND_LINE % dict(
             macAddress=mac, ipAddress=ip, netmask=self._netmask,
             osmosisServerIP=self._osmosisServerIP, inauguratorServerIP=self._inauguratorServerIP,
             rootPassword=self._rootPassword)
         if self._withLocalObjectStore:
             result += " --inauguratorWithLocalObjectStore"
+        if clearDisk:
+            result += " --inauguratorClearDisk"
         return result
 
 

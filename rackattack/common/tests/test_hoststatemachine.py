@@ -121,10 +121,11 @@ class Test(unittest.TestCase):
         self.assertEquals(label, self.expectedProvidedLabel)
         self.expectedProvidedLabel = None
 
-    def tftpbootConfigureForInaugurator(self, mac, ip):
+    def tftpbootConfigureForInaugurator(self, mac, ip, clearDisk=False):
         self.assertEquals(mac, self.hostImplementation.primaryMACAddress())
         self.assertEquals(ip, self.hostImplementation.ipAddress())
         self.assertTrue(self.expectedTFTPBootToBeConfiguredForInaugurator)
+        self.assertFalse(clearDisk)
         self.expectedTFTPBootToBeConfiguredForInaugurator = False
 
     def tftpbootConfigureForLocalBoot(self, mac):
