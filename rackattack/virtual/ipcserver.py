@@ -6,6 +6,7 @@ from rackattack.tcp import heartbeat
 from rackattack.tcp import suicide
 from rackattack import api
 from rackattack.common import globallock
+from rackattack.virtual.kvm import network
 
 
 class IPCServer(threading.Thread):
@@ -37,8 +38,14 @@ class IPCServer(threading.Thread):
         result = {}
         for name, vm in allocation.vms().iteritems():
             result[name] = dict(
-                id=vm.id(), primaryMACAddress=vm.primaryMACAddress(),
-                secondaryMACAddress=vm.secondaryMACAddress(), ipAddress=vm.ipAddress())
+                id=vm.id(),
+                primaryMACAddress=vm.primaryMACAddress(),
+                secondaryMACAddress=vm.secondaryMACAddress(),
+                ipAddress=vm.ipAddress(),
+                netmask=network.NETMASK,
+                inauguratorServerIP=network.GATEWAY_IP_ADDRESS,
+                gateway=network.GATEWAY_IP_ADDRESS,
+                osmosisServerIP=network.GATEWAY_IP_ADDRESS)
         return result
 
     def _cmd_allocation__free(self, id):
