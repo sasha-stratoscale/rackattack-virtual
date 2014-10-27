@@ -121,7 +121,8 @@ class HostStateMachine:
         try:
             logging.info("Node %(id)s being provided a label '%(label)s'", dict(
                 id=self._hostImplementation.id(), label=self._imageLabel))
-            self._inaugurate.provideLabel(ipAddress=self._hostImplementation.ipAddress(), label=self._imageLabel)
+            self._inaugurate.provideLabel(
+                ipAddress=self._hostImplementation.ipAddress(), label=self._imageLabel)
             self._changeState(STATE_INAUGURATION_LABEL_PROVIDED)
         except:
             logging.exception("Unable to provide label, cold reclaiming host %(host)s", dict(
