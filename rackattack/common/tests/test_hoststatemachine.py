@@ -33,6 +33,7 @@ class Test(unittest.TestCase):
         self.checkInCallback = None
         self.doneCallback = None
         self.expectedProvidedLabel = None
+        self.provideLabelRaises = False
         self.expectedReportedState = None
         timer.scheduleIn = self.scheduleTimerIn
         timer.cancelAllByTag = self.cancelAllTimersByTag
@@ -118,6 +119,8 @@ class Test(unittest.TestCase):
 
     def provideLabelForInauguration(self, ipAddress, label):
         self.assertEquals(ipAddress, self.hostImplementation.ipAddress())
+        if self.provideLabelRaises:
+            raise Exception("Provide label raises on purpose, as part of test")
         self.assertEquals(label, self.expectedProvidedLabel)
         self.expectedProvidedLabel = None
 
@@ -342,6 +345,20 @@ class Test(unittest.TestCase):
             self.currentTimer, hoststatemachine.STATE_SLOW_RECLAIMATION_IN_PROGRESS)
 
         self.timerCausesSelfDestructAndStateChange()
+
+    def test_vmLifeCycle_UnableToProvideLabel_ColdReclaim(self):
+        self.assign("fake image label", "fake image hint")
+        self.checkInCallbackProvidedLabelImmidiately("fake image label")
+        self.inaugurationDone()
+        self.unassignCausesSoftReclaim()
+        self.checkInCallbackLingers()
+        self.assertEquals(self.tested.state(), hoststatemachine.STATE_CHECKED_IN)
+        self.provideLabelRaises = True
+        self.expectedReportedState = hoststatemachine.STATE_SLOW_RECLAIMATION_IN_PROGRESS
+        self.expectedTFTPBootToBeConfiguredForInaugurator = True
+        self.expectedColdReclaim = True
+        self.assign("fake image label", "fake image hint")
+        self.assertEquals(self.tested.state(), hoststatemachine.STATE_SLOW_RECLAIMATION_IN_PROGRESS)
 
 
 if __name__ == '__main__':

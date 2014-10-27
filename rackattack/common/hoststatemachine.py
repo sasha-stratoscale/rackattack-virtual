@@ -76,7 +76,7 @@ class HostStateMachine:
 
     def destroy(self):
         assert globallock.assertLocked()
-        logging.info("destroying host %(ipAddress)s", dict(ipAddress=self._hostImplementation.ipAddress()))
+        logging.info("destroying host %(host)s", dict(ipAddress=self._hostImplementation.id()))
         self._inaugurate.unregister(self._hostImplementation.ipAddress())
         self._changeState(STATE_DESTROYED)
         assert self._destroyCallback is not None
@@ -102,8 +102,8 @@ class HostStateMachine:
 
     def _timeout(self):
         assert globallock.assertLocked()
-        logging.warning("Timeout for host %(ipAddress)s at state %(state)s", dict(
-            ipAddress=self._hostImplementation.ipAddress(), state=self._state))
+        logging.warning("Timeout for host %(id)s at state %(state)s", dict(
+            id=self._hostImplementation.id(), state=self._state))
         self._coldReclaim()
 
     def _softReclaimFailed(self):
@@ -113,28 +113,33 @@ class HostStateMachine:
             logging.warning("Ignoring soft reclamation failure, node already destroyed")
             return
         logging.warning(
-            "Soft reclaimation for host %(ipAddress)s failed, reverting to cold reclaimation",
-            dict(ipAddress=self._hostImplementation.ipAddress(), state=self._state))
+            "Soft reclaimation for host %(id)s failed, reverting to cold reclaimation",
+            dict(id=self._hostImplementation.id(), state=self._state))
         self._coldReclaim()
 
     def _provideLabel(self):
-        logging.info("Node %(ipAddress)s was provided a label '%(label)s'", dict(
-            ipAddress=self._hostImplementation.ipAddress(), label=self._imageLabel))
-        self._changeState(STATE_INAUGURATION_LABEL_PROVIDED)
-        self._inaugurate.provideLabel(ipAddress=self._hostImplementation.ipAddress(), label=self._imageLabel)
+        try:
+            logging.info("Node %(id)s being provided a label '%(label)s'", dict(
+                id=self._hostImplementation.id(), label=self._imageLabel))
+            self._inaugurate.provideLabel(ipAddress=self._hostImplementation.ipAddress(), label=self._imageLabel)
+            self._changeState(STATE_INAUGURATION_LABEL_PROVIDED)
+        except:
+            logging.exception("Unable to provide label, cold reclaiming host %(host)s", dict(
+                host=self._hostImplementation.id()))
+            self._coldReclaim()
 
     def _coldReclaim(self):
         assert self._destroyCallback is not None or self._slowReclaimCounter == 0
         self._slowReclaimCounter += 1
         if self._slowReclaimCounter > self._COLD_RECLAIMS_RETRIES:
-            logging.error("Cold reclaims retries exceeded, destroying host %(ipAddress)s", dict(
-                ipAddress=self._hostImplementation.ipAddress()))
+            logging.error("Cold reclaims retries exceeded, destroying host %(id)s", dict(
+                id=self._hostImplementation.id()))
             assert self._destroyCallback is not None
             self._destroyCallback(self)  # expected: caller will call self.destroy
             assert self._destroyCallback is None
             return
-        logging.info("Node is being cold reclaimed %(ipAddress)s", dict(
-            ipAddress=self._hostImplementation.ipAddress()))
+        logging.info("Node is being cold reclaimed %(id)s", dict(
+            id=self._hostImplementation.id()))
         self._tftpboot.configureForInaugurator(
             self._hostImplementation.primaryMACAddress(), self._hostImplementation.ipAddress(),
             clearDisk=self._clearDisk)
@@ -144,8 +149,7 @@ class HostStateMachine:
 
     def _softReclaim(self):
         assert self._destroyCallback is not None
-        logging.info("Node is being soft reclaimed %(ipAddress)s", dict(
-            ipAddress=self._hostImplementation.ipAddress()))
+        logging.info("Node is being soft reclaimed %(id)s", dict(id=self._hostImplementation.id()))
         self._changeState(STATE_QUICK_RECLAIMATION_IN_PROGRESS)
         self._tftpboot.configureForInaugurator(
             self._hostImplementation.primaryMACAddress(), self._hostImplementation.ipAddress())
