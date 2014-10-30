@@ -15,7 +15,7 @@ class HostStateMachine:
     _TIMEOUT = {
         STATE_QUICK_RECLAIMATION_IN_PROGRESS: 60,
         STATE_SLOW_RECLAIMATION_IN_PROGRESS: 7 * 60,
-        STATE_INAUGURATION_LABEL_PROVIDED: 4 * 60}
+        STATE_INAUGURATION_LABEL_PROVIDED: 7 * 60}
     _COLD_RECLAIMS_RETRIES = 5
 
     def __init__(self, hostImplementation, inaugurate, tftpboot, freshVMJustStarted=True):
@@ -85,8 +85,12 @@ class HostStateMachine:
 
     def _inauguratorCheckedIn(self):
         assert globallock.assertLocked()
-        assert self._state in [
-            STATE_SLOW_RECLAIMATION_IN_PROGRESS, STATE_QUICK_RECLAIMATION_IN_PROGRESS]
+#        assert self._state in [
+#            STATE_SLOW_RECLAIMATION_IN_PROGRESS, STATE_QUICK_RECLAIMATION_IN_PROGRESS]
+        if self._state not in [STATE_SLOW_RECLAIMATION_IN_PROGRESS, STATE_QUICK_RECLAIMATION_IN_PROGRESS]:
+            logging.error("expected reclamation state, found %(state)s", dict(state=self._state))
+#####
+
         if self._stateChangeCallback is not None:
             self._provideLabel()
         else:

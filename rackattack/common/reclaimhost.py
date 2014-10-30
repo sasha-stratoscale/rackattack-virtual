@@ -40,7 +40,8 @@ class ReclaimHost(threading.Thread):
             try:
                 self._reclaimByKexec()
             except:
-                logging.exception("Unable to reclaim by kexec")
+                logging.exception("Unable to reclaim by kexec '%(id)s'", dict(
+                    id=self._hostImplementation.id()))
                 assert self._softReclaimFailedCallback is not None
                 with globallock.lock:
                     self._softReclaimFailedCallback()
@@ -51,20 +52,25 @@ class ReclaimHost(threading.Thread):
                 self._hostImplementation.coldRestart()
                 return
             except:
-                logging.exception("Unable to reclaim by cold restart")
+                logging.exception("Unable to reclaim by cold restart '%(id)s'", dict(
+                    id=self._hostImplementation.id()))
                 time.sleep(self._COLD_RESTART_RETRY_INTERVAL)
-        raise Exception("Cold restart retries exceeded")
+        raise Exception("Cold restart retries exceeded '%(id)s'" % dict(
+            id=self._hostImplementation.id()))
 
     def _reclaimByKexec(self):
         ssh = connection.Connection(**self._hostImplementation.rootSSHCredentials())
         ssh.connect()
         uptime = float(ssh.ftp.getContents("/proc/uptime").split(" ")[0])
         if uptime > self._AVOID_RECLAIM_BY_KEXEC_IF_UPTIME_MORE_THAN:
-            raise Exception("system is up for way too long, will not kexec. doing cold restart")
+            raise Exception(
+                "system '%(id)s' is up for way too long, will not kexec. doing cold restart" % dict(
+                    id=self._hostImplementation.id()))
         try:
             ssh.run.script("kexec -h")
         except:
-            raise Exception("kexec does not exist on image, reverting to cold restart")
+            raise Exception("kexec does not exist on image on '%(id)s', reverting to cold restart" % dict(
+                id=self._hostImplementation.id()))
         ssh.ftp.putFile("/tmp/vmlinuz", tftpboot.INAUGURATOR_KERNEL)
         ssh.ftp.putFile("/tmp/initrd", tftpboot.INAUGURATOR_INITRD)
         ssh.run.script(
