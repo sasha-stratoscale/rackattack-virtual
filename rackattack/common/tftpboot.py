@@ -6,7 +6,7 @@ import logging
 
 
 INAUGURATOR_KERNEL = "/usr/share/inaugurator/inaugurator.vmlinuz"
-INAUGURATOR_INITRD = "/usr/share/inaugurator/inaugurator.initrd.img"
+INAUGURATOR_INITRD = "/usr/share/inaugurator/inaugurator.thin.initrd.img"
 
 
 class TFTPBoot:
