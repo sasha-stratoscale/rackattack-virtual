@@ -76,7 +76,7 @@ class HostStateMachine:
 
     def destroy(self):
         assert globallock.assertLocked()
-        logging.info("destroying host %(host)s", dict(ipAddress=self._hostImplementation.id()))
+        logging.info("destroying host %(host)s", dict(host=self._hostImplementation.id()))
         self._inaugurate.unregister(self._hostImplementation.ipAddress())
         self._changeState(STATE_DESTROYED)
         assert self._destroyCallback is not None
