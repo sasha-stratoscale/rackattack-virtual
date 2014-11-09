@@ -82,7 +82,7 @@ class BuildImageThread(threading.Thread):
         with globallock.lock:
             requirement = api.Requirement(
                 imageLabel=label, imageHint="build", hardwareConstraints=dict(
-                    disk1SizeGB=sizeGB, disk2SizeGB=1)).__dict__
+                    minimumDisk1SizeGB=sizeGB, minimumDisk2SizeGB=1)).__dict__
             vmInstance = vm.VM.createFromNewImage(config.IMAGE_BUILDING_VM_INDEX, requirement)
             stateMachine = hoststatemachine.HostStateMachine(vmInstance, self._inaugurate, self._tftpboot)
             stateMachine.assign(self._vmChangedState, imageLabel=label, imageHint="build")
