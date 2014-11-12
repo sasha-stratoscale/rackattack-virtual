@@ -3,7 +3,6 @@ class Hosts:
         self._stateMachines = []
 
     def add(self, stateMachine):
-        assert stateMachine.hostImplementation().index() == self.availableIndex()
         self._stateMachines.append(stateMachine)
 
     def byID(self, id):

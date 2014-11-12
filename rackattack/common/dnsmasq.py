@@ -11,6 +11,13 @@ import re
 
 class DNSMasq(threading.Thread):
     @classmethod
+    def eraseLeasesFile(self):
+        LEASES_FILE = '/var/lib/dnsmasq/dnsmasq.leases'
+        if os.path.exists(LEASES_FILE):
+            logging.info("Erasing old leases file")
+            os.unlink(LEASES_FILE)
+
+    @classmethod
     def killAllPrevious(self):
         logging.info("Killing all previous instances of dnsmasq")
         while True:
