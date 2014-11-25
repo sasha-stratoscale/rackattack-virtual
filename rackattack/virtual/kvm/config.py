@@ -6,6 +6,7 @@ DISK_IMAGES_DIRECTORY = "/var/lib/rackattackvirtual/diskimages"
 IMAGE_STORE_DIRECTORY = "/var/lib/rackattackvirtual/imagestore"
 IMAGE_STORE_LAST_USED = "/var/lib/rackattackvirtual/imagestore/lastused.json"
 SERIAL_LOGS_DIRECTORY = "/var/lib/rackattackvirtual/seriallogs"
+MANAGED_POST_MORTEM_PACKS_DIRECTORY = "/var/lib/rackattackvirtual/postMortemPacks"
 ROOT_PASSWORD = "rackattack"
 ERASE_IF_IMAGE_UNUSED_FOR = 14 * 24 * 60 * 60
 IMAGE_BUILDING_VM_INDEX = 50

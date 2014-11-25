@@ -51,10 +51,9 @@ class VM:
     def disk1Image(self):
         return self._manifest.disk1Image()
 
-    def fetchSerialLog(self):
+    def serialLogFilename(self):
         name = self._nameFromIndex(self._index)
-        with open(os.path.join(config.SERIAL_LOGS_DIRECTORY, name + ".serial.txt")) as serialLog:
-            return serialLog.read()
+        return os.path.join(config.SERIAL_LOGS_DIRECTORY, name + ".serial.txt")
 
     @classmethod
     def createFromImageStore(cls, index, requirement, imageStore):

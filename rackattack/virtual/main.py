@@ -13,19 +13,25 @@ from rackattack.virtual.kvm import config
 from rackattack.virtual.kvm import network
 from rackattack.virtual.kvm import imagestore
 from rackattack.common import dnsmasq
+from rackattack.common import globallock
 from rackattack.common import tftpboot
 from rackattack.common import inaugurate
 from rackattack.common import timer
 from rackattack.virtual.alloc import allocations
 from rackattack.tcp import publish
+from twisted.internet import reactor
+from twisted.web import server
+from rackattack.common import httprootresource
 import atexit
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--requestPort", default=1014, type=int)
 parser.add_argument("--subscribePort", default=1015, type=int)
+parser.add_argument("--httpPort", default=1016, type=int)
 parser.add_argument("--maximumVMs", type=int)
 parser.add_argument("--diskImagesDirectory")
 parser.add_argument("--serialLogsDirectory")
+parser.add_argument("--managedPostMortemPacksDirectory")
 args = parser.parse_args()
 
 if args.maximumVMs:
@@ -34,6 +40,8 @@ if args.diskImagesDirectory:
     config.DISK_IMAGES_DIRECTORY = args.diskImagesDirectory
 if args.serialLogsDirectory:
     config.SERIAL_LOGS_DIRECTORY = args.serialLogsDirectory
+if args.managedPostMortemPacksDirectory:
+    config.MANAGED_POST_MORTEM_PACKS_DIRECTORY = args.managedPostMortemPacksDirectory
 
 cleanup.cleanup()
 atexit.register(cleanup.cleanup)
@@ -66,7 +74,22 @@ allVMs = dict()
 allocationsInstance = allocations.Allocations(
     broadcaster=publishInstance, buildImageThread=buildImageThread,
     imageStore=imageStore, allVMs=allVMs)
-server = ipcserver.IPCServer(tcpPort=args.requestPort, allocations=allocationsInstance)
+ipcServer = ipcserver.IPCServer(tcpPort=args.requestPort, allocations=allocationsInstance)
+
+
+def serialLogFilename(vmID):
+    vms = {"rackattack-vm%d" % k: v for k, v in allVMs.iteritems()}
+    return vms[vmID].serialLogFilename()
+
+
+def createPostMortemPackForAllocationID(allocationID):
+    with globallock.lock:
+        return allocationsInstance.byIndex(int(allocationID)).createPostMortemPack()
+
+
+root = httprootresource.HTTPRootResource(
+    serialLogFilename, createPostMortemPackForAllocationID,
+    config.MANAGED_POST_MORTEM_PACKS_DIRECTORY)
+reactor.listenTCP(args.httpPort, server.Site(root))
 logging.info("Virtual RackAttack up and running")
-while True:
-    time.sleep(1000 * 1000)
+reactor.run()

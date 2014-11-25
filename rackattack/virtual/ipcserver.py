@@ -73,13 +73,6 @@ class IPCServer(threading.Thread):
                 return vm.rootSSHCredentials()
         raise Exception("Node with id '%s' was not found in this allocation" % nodeID)
 
-    def _cmd_node__fetchSerialLog(self, allocationID, nodeID):
-        allocation = self._allocations.byIndex(allocationID)
-        for vm in allocation.vms().values():
-            if vm.id() == nodeID:
-                return vm.fetchSerialLog()
-        raise Exception("Node with id '%s' was not found in this allocation" % nodeID)
-
     def run(self):
         try:
             while True:

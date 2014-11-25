@@ -4,6 +4,7 @@ from rackattack.virtual.kvm import vm
 from rackattack.common import globallock
 import time
 import logging
+import tempfile
 
 
 class Allocation:
@@ -59,6 +60,18 @@ class Allocation:
         if not self.dead():
             return False
         return self._death['when'] < time.time() - self._LIMBO_AFTER_DEATH_DURATION
+
+    def createPostMortemPack(self):
+        contents = []
+        for name, vmInstance in self._vms.iteritems():
+            contents.append("\n\n\n****************\n%s == %s\n******************" % (
+                vmInstance.id(), name))
+            with open(vmInstance.serialLogFilename(), "rb") as f:
+                contents.append(f.read())
+        filename = tempfile.mktemp()
+        with open(filename, "wb") as f:
+            f.write("\n".join(contents))
+        return filename
 
     def _heartbeatTimeout(self):
         self._die("heartbeat timeout")
