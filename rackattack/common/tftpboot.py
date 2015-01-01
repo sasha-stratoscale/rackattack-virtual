@@ -10,9 +10,12 @@ INAUGURATOR_INITRD = "/usr/share/inaugurator/inaugurator.thin.initrd.img"
 
 
 class TFTPBoot:
-    def __init__(self, netmask, inauguratorServerIP, osmosisServerIP, rootPassword, withLocalObjectStore):
+    def __init__(
+            self, netmask, inauguratorServerIP, inauguratorGatewayIP,
+            osmosisServerIP, rootPassword, withLocalObjectStore):
         self._netmask = netmask
         self._inauguratorServerIP = inauguratorServerIP
+        self._inauguratorGatewayIP = inauguratorGatewayIP
         self._osmosisServerIP = osmosisServerIP
         self._withLocalObjectStore = withLocalObjectStore
         self._root = tempfile.mkdtemp(suffix=".tftpboot")
@@ -58,6 +61,7 @@ class TFTPBoot:
         result = _INAUGURATOR_COMMAND_LINE % dict(
             macAddress=mac, ipAddress=ip, netmask=self._netmask,
             osmosisServerIP=self._osmosisServerIP, inauguratorServerIP=self._inauguratorServerIP,
+            inauguratorGatewayIP=self._inauguratorGatewayIP,
             rootPassword=self._rootPassword)
         if self._withLocalObjectStore:
             result += " --inauguratorWithLocalObjectStore"
@@ -107,5 +111,5 @@ _INAUGURATOR_COMMAND_LINE = \
     "--inauguratorSource=network " \
     "--inauguratorUseNICWithMAC=%(macAddress)s --inauguratorOsmosisObjectStores=%(osmosisServerIP)s:1010 " \
     "--inauguratorServerHostname=%(inauguratorServerIP)s --inauguratorIPAddress=%(ipAddress)s " \
-    "--inauguratorNetmask=%(netmask)s --inauguratorGateway=%(inauguratorServerIP)s " \
+    "--inauguratorNetmask=%(netmask)s --inauguratorGateway=%(inauguratorGatewayIP)s " \
     "--inauguratorChangeRootPassword=%(rootPassword)s"

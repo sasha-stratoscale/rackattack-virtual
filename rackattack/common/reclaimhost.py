@@ -43,7 +43,7 @@ class ReclaimHost(threading.Thread):
                 logging.exception("Unable to reclaim by kexec '%(id)s'", dict(
                     id=self._hostImplementation.id()))
                 assert self._softReclaimFailedCallback is not None
-                with globallock.lock:
+                with globallock.lock():
                     self._softReclaimFailedCallback()
 
     def _coldRestart(self):

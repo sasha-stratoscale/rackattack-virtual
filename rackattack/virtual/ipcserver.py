@@ -90,7 +90,7 @@ class IPCServer(threading.Thread):
         try:
             incoming = simplejson.loads(message)
             handler = getattr(self, "_cmd_" + incoming['cmd'])
-            with globallock.lock:
+            with globallock.lock():
                 response = handler(** incoming['arguments'])
         except Exception, e:
             logging.exception('Handling')

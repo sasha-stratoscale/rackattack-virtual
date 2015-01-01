@@ -29,7 +29,7 @@ class FakeHost:
 
 class Test(unittest.TestCase):
     def setUp(self):
-        globallock.lock.acquire()
+        globallock._lock.acquire()
         self.checkInCallback = None
         self.doneCallback = None
         self.expectedProvidedLabel = None
@@ -48,7 +48,7 @@ class Test(unittest.TestCase):
         self.construct()
 
     def tearDown(self):
-        globallock.lock.release()
+        globallock._lock.release()
 
     def construct(self):
         self.hostImplementation = FakeHost()

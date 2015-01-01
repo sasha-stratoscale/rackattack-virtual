@@ -50,6 +50,7 @@ network.setUp()
 tftpbootInstance = tftpboot.TFTPBoot(
     netmask=network.NETMASK,
     inauguratorServerIP=network.GATEWAY_IP_ADDRESS,
+    inauguratorGatewayIP=network.GATEWAY_IP_ADDRESS,
     osmosisServerIP=network.GATEWAY_IP_ADDRESS,
     rootPassword=config.ROOT_PASSWORD,
     withLocalObjectStore=False)
@@ -83,7 +84,7 @@ def serialLogFilename(vmID):
 
 
 def createPostMortemPackForAllocationID(allocationID):
-    with globallock.lock:
+    with globallock.lock():
         return allocationsInstance.byIndex(int(allocationID)).createPostMortemPack()
 
 

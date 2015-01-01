@@ -52,7 +52,7 @@ class TimersThread(threading.Thread):
             while True:
                 self._event.wait(timeout=timeout)
                 self._event.clear()
-                with globallock.lock:
+                with globallock.lock():
                     self._runOne()
                     timeout = self._nextTimeout()
         except:

@@ -40,24 +40,24 @@ class BuildImageThread(threading.Thread):
         self._busy = False
         label, sizeGB, callback = self._queue.get()
         self._busy = True
-        with globallock.lock:
+        with globallock.lock():
             callback(None, "Localizing label %s" % label)
         logging.info("Localizing label '%(label)s'", dict(label=label))
         try:
             sh.run(["solvent", "localize", "--label", label])
         except Exception as e:
             logging.exception("Unable to localize label '%(label)s'", dict(label=label))
-            with globallock.lock:
+            with globallock.lock():
                 callback(False, "Unable to localize label '%s': '%s'" % (label, str(e)))
             return
-        with globallock.lock:
+        with globallock.lock():
             callback(None, "Done localizing label %s, Building image using inaugurator" % label)
         logging.info("Done localizing label '%(label)s', building image using inaugurator", dict(
             label=label))
         vmInstance, stateMachine = self._startInauguratorVM(label, sizeGB)
         self._event.wait()
         self._event.clear()
-        with globallock.lock:
+        with globallock.lock():
             assert stateMachine.state() in [
                 hoststatemachine.STATE_INAUGURATION_DONE, hoststatemachine.STATE_DESTROYED]
             if stateMachine.state() == hoststatemachine.STATE_DESTROYED:
@@ -79,7 +79,7 @@ class BuildImageThread(threading.Thread):
             self._event.set()
 
     def _startInauguratorVM(self, label, sizeGB):
-        with globallock.lock:
+        with globallock.lock():
             requirement = api.Requirement(
                 imageLabel=label, imageHint="build", hardwareConstraints=dict(
                     minimumDisk1SizeGB=sizeGB, minimumDisk2SizeGB=1)).__dict__
