@@ -6,8 +6,8 @@ clean:
 UNITTESTS=$(shell find rackattack -name 'test_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
 COVERED_FILES=rackattack/common/hoststatemachine.py,rackattack/common/hosts.py
 unittest:
-	UPSETO_JOIN_PYTHON_NAMESPACES=Yes PYTHONPATH=. coverage run -m unittest $(UNITTESTS)
-	coverage report --show-missing --rcfile=coverage.config --fail-under=91 --include=$(COVERED_FILES)
+	UPSETO_JOIN_PYTHON_NAMESPACES=Yes PYTHONPATH=. python -m coverage run -m unittest $(UNITTESTS)
+	python -m coverage report --show-missing --rcfile=coverage.config --fail-under=91 --include=$(COVERED_FILES)
 
 WHITEBOXTESTS=$(shell find tests -name 'test?_*.py' | sed 's@/@.@g' | sed 's/\(.*\)\.py/\1/' | sort)
 whiteboxtest_nonstandard:
@@ -31,14 +31,21 @@ install: build/rackattack.virtual.egg
 	-sudo systemctl stop rackattack-virtual.service
 	-sudo mkdir /usr/share/rackattack.virtual
 	sudo cp build/rackattack.virtual.egg /usr/share/rackattack.virtual
+	if grep -i ubuntu /etc/os-release >/dev/null 2>/dev/null; then make install_service_upstart; else make install_service_systemd; fi
+
+install_service_systemd:
 	sudo cp rackattack-virtual.service /usr/lib/systemd/system/rackattack-virtual.service
 	sudo systemctl enable rackattack-virtual.service
 	if ["$(DONT_START_SERVICE)" == ""]; then sudo systemctl start rackattack-virtual; fi
 
+install_service_upstart:
+	sudo cp upstart_rackattack-virtual.conf /etc/init/rackattack-virtual.conf
+	if ["$(DONT_START_SERVICE)" == ""]; then sudo service rackattack-virtual start; fi
+
 uninstall:
 	-sudo systemctl stop rackattack-virtual
 	-sudo systemctl disable rackattack-virtual.service
-	-sudo rm -fr /usr/lib/systemd/system/rackattack-virtual.service
+	-sudo rm -fr /usr/lib/systemd/system/rackattack-virtual.service /etc/init/rackattack-virtual.conf
 	sudo rm -fr /usr/share/rackattack.virtual
 
 prepareForCleanBuild:

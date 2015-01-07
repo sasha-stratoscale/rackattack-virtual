@@ -31,8 +31,16 @@ class TFTPBoot:
         shutil.rmtree(self._root, ignore_errors=True)
 
     def _installPXELinux(self):
-        shutil.copy("/usr/share/syslinux/menu.c32", self._root)
-        shutil.copy("/usr/share/syslinux/pxelinux.0", self._root)
+        if os.path.exists("/usr/share/syslinux/menu.c32"):
+            shutil.copy("/usr/share/syslinux/menu.c32", self._root)
+        else:
+            shutil.copy("/usr/lib/syslinux/modules/bios/menu.c32", self._root)
+            shutil.copy("/usr/lib/syslinux/modules/bios/ldlinux.c32", self._root)
+            shutil.copy("/usr/lib/syslinux/modules/bios/libutil.c32", self._root)
+        if os.path.exists("/usr/share/syslinux/pxelinux.0"):
+            shutil.copy("/usr/share/syslinux/pxelinux.0", self._root)
+        else:
+            shutil.copy("/usr/lib/PXELINUX/pxelinux.0", self._root)
         shutil.copy(INAUGURATOR_KERNEL, self._root)
         shutil.copy(INAUGURATOR_INITRD, self._root)
         os.mkdir(self._pxelinuxConfigDir)

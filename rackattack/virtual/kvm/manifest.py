@@ -83,13 +83,13 @@ _TEMPLATE = """
   <devices>
     <emulator>/usr/bin/qemu-kvm</emulator>
     <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2' cache='writeback' io='native'/>
+      <driver name='qemu' type='qcow2' cache='writeback' io='threads'/>
       <source file='%(disk1Image)s'/>
       <target dev='vda' bus='virtio'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
     </disk>
     <disk type='file' device='disk'>
-      <driver name='qemu' type='qcow2' cache='writeback' io='native'/>
+      <driver name='qemu' type='qcow2' cache='writeback' io='threads'/>
       <source file='%(disk2Image)s'/>
       <target dev='vdb' bus='virtio'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x06' function='0x0'/>
