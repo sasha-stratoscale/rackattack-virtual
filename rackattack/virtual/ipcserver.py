@@ -1,20 +1,19 @@
 import threading
-import zmq
 import logging
 import simplejson
 from rackattack.tcp import heartbeat
 from rackattack.tcp import suicide
+from rackattack.tcp import debug
 from rackattack import api
 from rackattack.common import globallock
 from rackattack.virtual.kvm import network
+import Queue
 
 
 class IPCServer(threading.Thread):
-    def __init__(self, tcpPort, allocations):
+    def __init__(self, allocations):
         self._allocations = allocations
-        self._context = zmq.Context()
-        self._socket = self._context.socket(zmq.REP)
-        self._socket.bind("tcp://127.0.0.1:%d" % tcpPort)
+        self._queue = Queue.Queue()
         threading.Thread.__init__(self)
         self.daemon = True
         threading.Thread.start(self)
@@ -85,14 +84,30 @@ class IPCServer(threading.Thread):
             suicide.killSelf()
             raise
 
-    def _work(self):
-        message = self._socket.recv(0)
+    def handle(self, string, respondCallback):
         try:
-            incoming = simplejson.loads(message)
+            incoming = simplejson.loads(string)
+            if incoming['cmd'] == 'handshake':
+                with debug.logNetwork("Handling handshake"):
+                    response = self._cmd_handshake(** incoming['arguments'])
+                    respondCallback(simplejson.dumps(response))
+            else:
+                transaction = debug.Transaction("Handling: %s" % incoming['cmd'])
+                self._queue.put((incoming, respondCallback, transaction))
+        except Exception, e:
+            logging.exception('Handling')
+            response = dict(exceptionString=str(e), exceptionType=e.__class__.__name__)
+            respondCallback(simplejson.dumps(response))
+
+    def _work(self):
+        incoming, respondCallback, transaction = self._queue.get()
+        transaction.reportState('dequeued (%d left in queue)' % self._queue.qsize())
+        try:
             handler = getattr(self, "_cmd_" + incoming['cmd'])
             with globallock.lock():
                 response = handler(** incoming['arguments'])
         except Exception, e:
             logging.exception('Handling')
             response = dict(exceptionString=str(e), exceptionType=e.__class__.__name__)
-        self._socket.send_json(response)
+        transaction.finished()
+        respondCallback(simplejson.dumps(response))

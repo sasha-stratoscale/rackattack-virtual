@@ -19,6 +19,7 @@ from rackattack.common import inaugurate
 from rackattack.common import timer
 from rackattack.virtual.alloc import allocations
 from rackattack.tcp import publish
+from rackattack.tcp import transportserver
 from twisted.internet import reactor
 from twisted.web import server
 from rackattack.common import httprootresource
@@ -70,12 +71,13 @@ inaugurateInstance = inaugurate.Inaugurate(bindHostname=network.GATEWAY_IP_ADDRE
 imageStore = imagestore.ImageStore()
 buildImageThread = buildimagethread.BuildImageThread(
     inaugurate=inaugurateInstance, tftpboot=tftpbootInstance, imageStore=imageStore)
-publishInstance = publish.Publish(tcpPort=args.subscribePort, localhostOnly=True)
+publishFactory = publish.PublishFactory()
+publishInstance = publish.Publish(publishFactory)
 allVMs = dict()
 allocationsInstance = allocations.Allocations(
     broadcaster=publishInstance, buildImageThread=buildImageThread,
     imageStore=imageStore, allVMs=allVMs)
-ipcServer = ipcserver.IPCServer(tcpPort=args.requestPort, allocations=allocationsInstance)
+ipcServer = ipcserver.IPCServer(allocations=allocationsInstance)
 
 
 def serialLogFilename(vmID):
@@ -92,5 +94,7 @@ root = httprootresource.HTTPRootResource(
     serialLogFilename, createPostMortemPackForAllocationID,
     config.MANAGED_POST_MORTEM_PACKS_DIRECTORY)
 reactor.listenTCP(args.httpPort, server.Site(root))
+reactor.listenTCP(args.requestPort, transportserver.TransportFactory(ipcServer.handle))
+reactor.listenTCP(args.subscribePort, publishFactory)
 logging.info("Virtual RackAttack up and running")
 reactor.run()

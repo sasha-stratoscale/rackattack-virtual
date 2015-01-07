@@ -15,14 +15,16 @@ def lock():
         acquired = time.time()
         took = acquired - before
         if took > 0.1:
-            logging.error("Acquiring the global lock took more than 0.1s. Stack:\n%(stack)s", dict(
-                stack=traceback.format_stack()))
+            logging.error(
+                "Acquiring the global lock took more than 0.1s: %(tool)ss. Stack:\n%(stack)s", dict(
+                    took=took, stack=traceback.format_stack()))
         yield
         released = time.time()
         took = released - acquired
         if took > 0.1:
-            logging.error("Holding the global lock took more than 0.1s. Stack:\n%(stack)s", dict(
-                stack=traceback.format_stack()))
+            logging.error(
+                "Holding the global lock took more than 0.1s: %(took)ss. Stack:\n%(stack)s", dict(
+                    took=took, stack=traceback.format_stack()))
 
 
 def assertLocked():
