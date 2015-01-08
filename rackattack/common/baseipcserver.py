@@ -15,7 +15,7 @@ class BaseIPCServer(threading.Thread):
         self.daemon = True
         threading.Thread.start(self)
 
-    def cmd_handshake(self, versionInfo):
+    def cmd_handshake(self, versionInfo, peer):
         if versionInfo['RACKATTACK_VERSION'] != api.VERSION:
             raise Exception(
                 "Rackattack API version on the client side is '%s', and '%s' on the provider" % (
@@ -33,28 +33,28 @@ class BaseIPCServer(threading.Thread):
             suicide.killSelf()
             raise
 
-    def handle(self, string, respondCallback):
+    def handle(self, string, respondCallback, peer):
         try:
             incoming = simplejson.loads(string)
             if incoming['cmd'] == 'handshake':
                 with debug.logNetwork("Handling handshake"):
-                    response = self.cmd_handshake(** incoming['arguments'])
+                    response = self.cmd_handshake(peer=peer, ** incoming['arguments'])
                     respondCallback(simplejson.dumps(response))
             else:
                 transaction = debug.Transaction("Handling: %s" % incoming['cmd'])
-                self._queue.put((incoming, respondCallback, transaction))
+                self._queue.put((incoming, peer, respondCallback, transaction))
         except Exception, e:
             logging.exception('Handling')
             response = dict(exceptionString=str(e), exceptionType=e.__class__.__name__)
             respondCallback(simplejson.dumps(response))
 
     def _work(self):
-        incoming, respondCallback, transaction = self._queue.get()
+        incoming, peer, respondCallback, transaction = self._queue.get()
         transaction.reportState('dequeued (%d left in queue)' % self._queue.qsize())
         try:
             handler = getattr(self, "cmd_" + incoming['cmd'])
             with globallock.lock():
-                response = handler(** incoming['arguments'])
+                response = handler(peer=peer, ** incoming['arguments'])
         except Exception, e:
             logging.exception('Handling')
             response = dict(exceptionString=str(e), exceptionType=e.__class__.__name__)

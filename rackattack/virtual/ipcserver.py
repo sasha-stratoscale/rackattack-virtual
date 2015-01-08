@@ -8,11 +8,11 @@ class IPCServer(baseipcserver.BaseIPCServer):
         self._allocations = allocations
         baseipcserver.BaseIPCServer.__init__(self)
 
-    def cmd_allocate(self, requirements, allocationInfo):
+    def cmd_allocate(self, requirements, allocationInfo, peer):
         allocation = self._allocations.create(requirements)
         return allocation.index()
 
-    def cmd_allocation__nodes(self, id):
+    def cmd_allocation__nodes(self, id, peer):
         allocation = self._allocations.byIndex(id)
         if allocation.dead():
             raise Exception("Must not fetch nodes from a dead allocation")
@@ -31,25 +31,25 @@ class IPCServer(baseipcserver.BaseIPCServer):
                 osmosisServerIP=network.GATEWAY_IP_ADDRESS)
         return result
 
-    def cmd_allocation__free(self, id):
+    def cmd_allocation__free(self, id, peer):
         allocation = self._allocations.byIndex(id)
         allocation.free()
 
-    def cmd_allocation__done(self, id):
+    def cmd_allocation__done(self, id, peer):
         allocation = self._allocations.byIndex(id)
         return allocation.done()
 
-    def cmd_allocation__dead(self, id):
+    def cmd_allocation__dead(self, id, peer):
         allocation = self._allocations.byIndex(id)
         return allocation.dead()
 
-    def cmd_heartbeat(self, ids):
+    def cmd_heartbeat(self, ids, peer):
         for id in ids:
             allocation = self._allocations.byIndex(id)
             allocation.heartbeat()
         return heartbeat.HEARTBEAT_OK
 
-    def cmd_node__rootSSHCredentials(self, allocationID, nodeID):
+    def cmd_node__rootSSHCredentials(self, allocationID, nodeID, peer):
         allocation = self._allocations.byIndex(allocationID)
         for vm in allocation.vms().values():
             if vm.id() == nodeID:
