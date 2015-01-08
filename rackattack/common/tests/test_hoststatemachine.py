@@ -124,11 +124,15 @@ class Test(unittest.TestCase):
         self.assertEquals(label, self.expectedProvidedLabel)
         self.expectedProvidedLabel = None
 
+    def isObjectInitialized(self):
+        return hasattr(self, 'tested')
+
     def tftpbootConfigureForInaugurator(self, mac, ip, clearDisk=False):
         self.assertEquals(mac, self.hostImplementation.primaryMACAddress())
         self.assertEquals(ip, self.hostImplementation.ipAddress())
         self.assertTrue(self.expectedTFTPBootToBeConfiguredForInaugurator)
-        self.assertFalse(clearDisk)
+        if self.isObjectInitialized():
+            self.assertEquals(clearDisk, self.tested._clearDiskOnSlowReclaim())
         self.expectedTFTPBootToBeConfiguredForInaugurator = False
 
     def tftpbootConfigureForLocalBoot(self, mac):
