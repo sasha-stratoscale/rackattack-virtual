@@ -64,6 +64,7 @@ class Test(unittest.TestCase):
         reclaimhost.ReclaimHost.cold = self.reclaimHostCold
         reclaimhost.ReclaimHost.soft = self.reclaimHostSoft
         self.expectedTFTPBootToBeConfiguredForInaugurator = True
+        self.expectedClearDisk = False
         self.tested = hoststatemachine.HostStateMachine(
             hostImplementation=self.hostImplementation,
             inaugurate=self.fakeInaugurate, tftpboot=self.fakeTFTPBoot)
@@ -124,11 +125,14 @@ class Test(unittest.TestCase):
         self.assertEquals(label, self.expectedProvidedLabel)
         self.expectedProvidedLabel = None
 
+    def isObjectInitialized(self):
+        return hasattr(self, 'tested')
+
     def tftpbootConfigureForInaugurator(self, mac, ip, clearDisk=False):
         self.assertEquals(mac, self.hostImplementation.primaryMACAddress())
         self.assertEquals(ip, self.hostImplementation.ipAddress())
         self.assertTrue(self.expectedTFTPBootToBeConfiguredForInaugurator)
-        self.assertFalse(clearDisk)
+        self.assertEquals(clearDisk, self.expectedClearDisk)
         self.expectedTFTPBootToBeConfiguredForInaugurator = False
 
     def tftpbootConfigureForLocalBoot(self, mac):
@@ -324,6 +328,7 @@ class Test(unittest.TestCase):
         self.callCausesColdReclaim(self.currentTimer)
 
         self.callCausesColdReclaim(self.currentTimer)
+        self.expectedClearDisk = True
         self.callCausesColdReclaim(self.currentTimer)
         self.callCausesColdReclaim(self.currentTimer)
         self.callCausesColdReclaim(self.currentTimer)
@@ -337,6 +342,7 @@ class Test(unittest.TestCase):
 
         self.callCausesColdReclaimAndStateChange(
             self.currentTimer, hoststatemachine.STATE_SLOW_RECLAIMATION_IN_PROGRESS)
+        self.expectedClearDisk = True
         self.callCausesColdReclaimAndStateChange(
             self.currentTimer, hoststatemachine.STATE_SLOW_RECLAIMATION_IN_PROGRESS)
         self.callCausesColdReclaimAndStateChange(
