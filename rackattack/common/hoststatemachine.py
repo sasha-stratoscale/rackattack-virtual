@@ -19,12 +19,11 @@ class HostStateMachine:
     _COLD_RECLAIMS_RETRIES = 5
     _COLD_RECLAIMS_RETRIES_BEFORE_CLEARING_DISK = 2
 
-    def __init__(self, hostImplementation, inaugurate, tftpboot, freshVMJustStarted=True, clearDisk=False):
+    def __init__(self, hostImplementation, inaugurate, tftpboot, freshVMJustStarted=True):
         self._hostImplementation = hostImplementation
         self._destroyCallback = None
         self._inaugurate = inaugurate
         self._tftpboot = tftpboot
-        self._clearDisk = clearDisk
         self._slowReclaimCounter = 0
         self._stop = False
         self._stateChangeCallback = None
@@ -147,14 +146,11 @@ class HostStateMachine:
             self._destroyCallback(self)  # expected: caller will call self.destroy
             assert self._destroyCallback is None
             return
-        if self._clearDiskOnSlowReclaim():
-            self._clearDisk = True
         logging.info("Node is being cold reclaimed %(id)s", dict(
             id=self._hostImplementation.id()))
         self._tftpboot.configureForInaugurator(
             self._hostImplementation.primaryMACAddress(), self._hostImplementation.ipAddress(),
-            clearDisk=self._clearDisk)
-        self._clearDisk = False
+            clearDisk=self._clearDiskOnSlowReclaim())
         self._changeState(STATE_SLOW_RECLAIMATION_IN_PROGRESS)
         reclaimhost.ReclaimHost.cold(self._hostImplementation, self._tftpboot)
 
