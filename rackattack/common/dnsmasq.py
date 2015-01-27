@@ -52,13 +52,12 @@ class DNSMasq(threading.Thread):
                 return
 
     def __init__(
-            self, tftpboot, serverIP, netmask, firstIP, lastIP, gateway=None,
+            self, tftpboot, serverIP, netmask, ipAddress, gateway=None,
             nameserver=None, interface=None):
         self._tftpboot = tftpboot
         self._nodesMACIPPairs = []
         self._netmask = netmask
-        self._firstIP = firstIP
-        self._lastIP = lastIP
+        self._ipAddress = ipAddress
         self._gateway = gateway
         self._nameserver = nameserver
         self._interface = interface
@@ -95,7 +94,7 @@ class DNSMasq(threading.Thread):
         interface = "" if self._interface is None else "bind-interfaces\ninterface=" + self._interface
         output = _TEMPLATE % dict(
             netmask=self._netmask, gateway=gateway, nameserver=nameserver, interface=interface,
-            tftpbootRoot=self._tftpboot.root(), firstIPAddress=self._firstIP, lastIPAddress=self._lastIP)
+            tftpbootRoot=self._tftpboot.root(), ipAddress=self._ipAddress)
         conf.write(output)
         conf.flush()
         return conf
@@ -131,4 +130,4 @@ _TEMPLATE = \
     'pxe-prompt="Press F8 for boot menu", 1\n' + \
     'pxe-service=X86PC, "Boot from network", pxelinux\n' + \
     'pxe-service=X86PC, "Boot from local hard disk", 0\n' + \
-    'dhcp-range=%(firstIPAddress)s,%(lastIPAddress)s,%(netmask)s,12h\n'
+    'dhcp-range=%(ipAddress)s,static,%(netmask)s\n'
