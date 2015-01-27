@@ -16,7 +16,7 @@ class Test(unittest.TestCase):
         subprocess.Popen = mock.MagicMock(spec=subprocess.Popen)
         self.tftpBootMock = mock.Mock(tftpboot.TFTPBoot)
         DNSMasq.run = lambda x: None
-        self.tested = DNSMasq(self.tftpBootMock, '10.0.0.1', '255.255.255.0', '10.0.0.2', '10.0.0.10',
+        self.tested = DNSMasq(self.tftpBootMock, '10.0.0.1', '255.255.255.0', '10.0.0.2',
                               gateway='10.0.0.20', nameserver='8.8.8.8', interface='eth0')
         self.tested._popen.pid = 12345
         self.tested._hostsFile = StringIO.StringIO()
